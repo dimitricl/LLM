@@ -1,6 +1,9 @@
 import hashlib
 import re
 from collections.abc import Iterable, Iterator
+from pathlib import Path
+
+import numpy as np
 
 _TAG = re.compile(r"<[^>]+>")
 _SPACES = re.compile(r"[ \t]+")
@@ -42,3 +45,33 @@ def split_documents(
         else:
             splits["train"].append(doc)
     return splits
+
+
+def pack_documents(
+    documents: Iterable[list[int]], context_len: int, eos_id: int
+) -> Iterator[list[int]]:
+    buffer: list[int] = []
+    for document in documents:
+        buffer.extend(document)
+        buffer.append(eos_id)
+        while len(buffer) >= context_len:
+            yield buffer[:context_len]
+            buffer = buffer[context_len:]
+
+
+def write_bin(chunks: Iterable[list[int]], path: str | Path) -> int:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    written = 0
+    with path.open("wb") as handle:
+        for chunk in chunks:
+            np.asarray(chunk, dtype=np.uint16).tofile(handle)
+            written += len(chunk)
+    return written
+
+
+def read_bin(path: str | Path) -> np.ndarray:
+    path = Path(path)
+    if path.stat().st_size == 0:
+        return np.empty(0, dtype=np.uint16)
+    return np.memmap(path, dtype=np.uint16, mode="r")
