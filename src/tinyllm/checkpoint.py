@@ -32,6 +32,7 @@ def load_checkpoint(
         raise FileNotFoundError(f"no checkpoint at {path}")
     model.load_weights(list(mx.load(str(weights_path)).items()))
     if optimizer is not None:
-        optimizer_state = mx.load(str(path / "optimizer.safetensors"))
-        optimizer.state = optimizer_state
+        optimizer.state = tree_unflatten(
+            list(mx.load(str(path / "optimizer.safetensors")).items())
+        )
     return json.loads((path / "state.json").read_text())

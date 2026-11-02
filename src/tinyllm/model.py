@@ -11,10 +11,15 @@ class RMSNorm(nn.Module):
         self.eps = eps
 
     def __call__(self, x: mx.array) -> mx.array:
-        return x * mx.rsqrt(mx.mean(x * x, axis=-1, keepdims=True) + self.eps) * self.weight
+        return mx.fast.rms_norm(x, self.weight, self.eps)
 
 
-def rope_tables(seq_len: int, head_dim: int, theta: float = 10_000.0) -> tuple[mx.array, mx.array]:
+def rope_tables(
+    seq_len: int,
+    head_dim: int,
+    theta: float = 10_000.0,
+    dtype=mx.float32,
+) -> tuple[mx.array, mx.array]:
     positions = mx.arange(seq_len)
     freqs = mx.exp(
         mx.arange(0, head_dim, 2, dtype=mx.float32)
@@ -23,7 +28,7 @@ def rope_tables(seq_len: int, head_dim: int, theta: float = 10_000.0) -> tuple[m
     angles = positions[:, None] * freqs[None, :]
     cos = mx.concatenate([mx.cos(angles), mx.cos(angles)], axis=-1)
     sin = mx.concatenate([mx.sin(angles), mx.sin(angles)], axis=-1)
-    return cos, sin
+    return cos.astype(dtype), sin.astype(dtype)
 
 
 def apply_rope(
@@ -101,10 +106,38 @@ class Attention(nn.Module):
         if cache is not None:
             k, v = cache.update(k, v)
 
+        mask = "causal" if seq_len > 1 else None
+        # Causal masking assumes a prefill starts with an empty cache.
+        out = mx.fast.scaled_dot_product_attention(
+            q, k, v, scale=self.scale, mask=mask
+        )
+        out = out.transpose(0, 2, 1, 3).reshape(batch, seq_len, -1)
+        return self.o_proj(out)
+
+    def attention_reference(
+        self,
+        x: mx.array,
+        cos: mx.array,
+        sin: mx.array,
+        cache=None,
+    ) -> mx.array:
+        batch, seq_len, _ = x.shape
+        q = self.q_proj(x).reshape(batch, seq_len, self.n_heads, self.head_dim)
+        k = self.k_proj(x).reshape(batch, seq_len, self.n_kv_heads, self.head_dim)
+        v = self.v_proj(x).reshape(batch, seq_len, self.n_kv_heads, self.head_dim)
+        q = q.transpose(0, 2, 1, 3)
+        k = k.transpose(0, 2, 1, 3)
+        v = v.transpose(0, 2, 1, 3)
+
+        offset = 0 if cache is None else cache.length
+        q = apply_rope(q, cos, sin, offset)
+        k = apply_rope(k, cos, sin, offset)
+        if cache is not None:
+            k, v = cache.update(k, v)
+
         repeats = self.n_heads // self.n_kv_heads
         k = mx.repeat(k, repeats, axis=1)
         v = mx.repeat(v, repeats, axis=1)
-
         scores = (q @ k.transpose(0, 1, 3, 2)) * self.scale
         scores = scores + causal_mask(seq_len, k.shape[2], scores.dtype)
         probs = mx.softmax(scores, axis=-1)
@@ -134,8 +167,8 @@ class Block(nn.Module):
     def __call__(
         self, x: mx.array, cos: mx.array, sin: mx.array, cache=None
     ) -> mx.array:
-        h = x + self.attn(self.attn_norm(x), cos, sin, cache)
-        return h + self.ffn(self.ffn_norm(h))
+        x = x + self.attn(self.attn_norm(x), cos, sin, cache)
+        return x + self.ffn(self.ffn_norm(x))
 
 
 class TinyLM(nn.Module):
@@ -152,6 +185,7 @@ class TinyLM(nn.Module):
             self.cfg.context_len,
             self.cfg.head_dim,
             self.cfg.rope_theta,
+            dtype=x.dtype,
         )
         for index, layer in enumerate(self.layers):
             layer_cache = None if cache is None else cache[index]

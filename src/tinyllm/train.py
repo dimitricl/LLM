@@ -49,6 +49,22 @@ def cast_tree(tree, dtype):
     return tree_map(lambda value: value.astype(dtype), tree)
 
 
+def _device_info():
+    return mx.device_info() if hasattr(mx, "device_info") else mx.metal.device_info()
+
+
+def _memory_function(name):
+    return getattr(mx, name, None) or getattr(mx.metal, name)
+
+
+def _peak_memory() -> int:
+    return _memory_function("get_peak_memory")()
+
+
+def _reset_peak_memory() -> None:
+    _memory_function("reset_peak_memory")()
+
+
 def make_optimizer(cfg: TrainConfig) -> optim.AdamW:
     return optim.AdamW(
         learning_rate=cfg.lr,
@@ -96,6 +112,11 @@ def train(
     max_steps: int | None = None,
     force: bool = False,
 ) -> dict:
+    info = _device_info()
+    memory_size = info["memory_size"]
+    _memory_function("set_memory_limit")(int(0.7 * memory_size))
+    _memory_function("set_cache_limit")(1 * 2**30)
+
     if max_steps is not None:
         cfg = replace(cfg, train=replace(cfg.train, max_steps=max_steps))
 
@@ -136,12 +157,13 @@ def train(
     _STOP["requested"] = False
 
     while step < cfg.train.max_steps:
+        _reset_peak_memory()
         learning_rate = lr_at_step(step, cfg.train)
         optimizer.learning_rate = learning_rate
         accumulated = None
+        work.update(cast_tree(model.parameters(), dtype))
         for _ in range(cfg.train.grad_accum):
             batch = dataset.next_batch(cfg.train.micro_batch)
-            work.update(cast_tree(model.parameters(), dtype))
             loss, grads = loss_and_grad(work, batch)
             grads = cast_tree(grads, mx.float32)
             accumulated = (
@@ -149,6 +171,13 @@ def train(
                 if accumulated is None
                 else tree_map(lambda a, b: a + b, accumulated, grads)
             )
+            mx.eval(accumulated, loss)
+            peak_mb = _peak_memory() / 2**20
+            if peak_mb > 0.8 * memory_size / 2**20:
+                raise SystemExit(
+                    f"peak memory {peak_mb:.0f} MB > {0.8 * memory_size / 2**20:.0f} MB; "
+                    "reduce micro_batch and increase grad_accum"
+                )
         accumulated = tree_map(lambda g: g / cfg.train.grad_accum, accumulated)
         accumulated, norm = clip_grads(accumulated, cfg.train.grad_clip)
         optimizer.update(model, accumulated)
@@ -164,7 +193,7 @@ def train(
                 "lr": learning_rate,
                 "grad_norm": float(norm),
                 "tokens_per_s": step * tokens_per_step / elapsed,
-                "peak_memory_mb": mx.metal.get_peak_memory() / 2**20,
+                "peak_memory_mb": _peak_memory() / 2**20,
             }
             with log_path.open("a") as handle:
                 handle.write(json.dumps(record) + "\n")
@@ -220,12 +249,6 @@ def train(
                 save_checkpoint(ckpt_dir / "best", model, optimizer, meta)
             rotate_checkpoints(ckpt_dir, keep=3)
 
-        peak_mb = mx.metal.get_peak_memory() / 2**20
-        if peak_mb > 13_000:
-            raise SystemExit(
-                f"peak memory {peak_mb:.0f} MB > 13000 MB; "
-                "reduce micro_batch and increase grad_accum"
-            )
         if _STOP["requested"]:
             print("interrupt received, saving checkpoint")
             break

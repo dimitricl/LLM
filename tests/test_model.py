@@ -4,10 +4,10 @@ from mlx.utils import tree_flatten
 
 from tinyllm.config import ModelConfig
 from tinyllm.model import (
+    MLP,
     Attention,
     Block,
     KVCache,
-    MLP,
     RMSNorm,
     TinyLM,
     apply_rope,
@@ -38,6 +38,14 @@ def test_rope_preserves_norm():
     assert mx.allclose(
         mx.linalg.norm(x, axis=-1), mx.linalg.norm(out, axis=-1), atol=1e-4
     )
+
+
+def test_rope_dtype_is_preserved():
+    x = mx.random.normal((1, 2, 5, 16)).astype(mx.bfloat16)
+    cos, sin = rope_tables(8, 16, dtype=mx.bfloat16)
+    assert cos.dtype == mx.bfloat16
+    assert sin.dtype == mx.bfloat16
+    assert apply_rope(x, cos, sin).dtype == mx.bfloat16
 
 
 def test_rope_depends_only_on_relative_position():
@@ -94,6 +102,25 @@ def test_attention_is_causal():
     out_b = attention(changed, cos, sin)
     assert mx.allclose(out_a[:, :5], out_b[:, :5], atol=1e-5)
     assert not mx.allclose(out_a[:, 5:], out_b[:, 5:], atol=1e-5)
+
+
+def test_attention_sdpa_matches_reference():
+    cfg = _cfg()
+    attention = Attention(cfg)
+    x = mx.random.normal((1, 16, cfg.d_model))
+    cos, sin = rope_tables(16, cfg.head_dim, cfg.rope_theta)
+
+    out = attention(x, cos, sin)
+    reference = attention.attention_reference(x, cos, sin)
+    assert mx.allclose(out, reference, atol=1e-4)
+
+    sdpa_cache = KVCache()
+    reference_cache = KVCache()
+    out = attention(x[:, :8], cos, sin, sdpa_cache)
+    reference = attention.attention_reference(
+        x[:, :8], cos, sin, reference_cache
+    )
+    assert mx.allclose(out, reference, atol=1e-4)
 
 
 def test_mlp_shape():

@@ -4,6 +4,7 @@ from pathlib import Path
 import mlx.core as mx
 import numpy as np
 
+from tinyllm import train as train_module
 from tinyllm.config import DataConfig, ModelConfig, RunConfig, TrainConfig
 from tinyllm.data import write_bin
 from tinyllm.train import rotate_checkpoints, train
@@ -64,6 +65,33 @@ def test_resume_matches_uninterrupted_run(tmp_path):
     resumed_part = mx.load(str(tmp_path / "runs/resumed/checkpoints/latest/model.safetensors"))
     assert part.keys() == resumed_part.keys()
     assert all(mx.allclose(part[key], resumed_part[key], atol=1e-5) for key in part)
+
+
+def test_grad_accumulation_peak_memory_does_not_scale_linearly(tmp_path, monkeypatch):
+    peaks = []
+    original_peak_memory = train_module._peak_memory
+
+    def record_peak_memory():
+        peak = original_peak_memory()
+        peaks.append(peak)
+        return peak
+
+    monkeypatch.setattr(train_module, "_peak_memory", record_peak_memory)
+    cfg = _cfg(tmp_path, "accum1", max_steps=1)
+    train(cfg)
+    peak_accum1 = max(peaks)
+
+    peaks.clear()
+    cfg = _cfg(tmp_path, "accum4", max_steps=1)
+    cfg = cfg.__class__(
+        **{
+            **cfg.__dict__,
+            "train": cfg.train.__class__(**{**cfg.train.__dict__, "grad_accum": 4}),
+        }
+    )
+    train(cfg)
+    peak_accum4 = max(peaks)
+    assert peak_accum4 <= peak_accum1 * 1.5
 
 
 def test_rotate_checkpoints_keeps_last_and_best(tmp_path):
