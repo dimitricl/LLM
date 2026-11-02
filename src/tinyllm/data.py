@@ -47,6 +47,15 @@ def split_documents(
     return splits
 
 
+def split_for(text: str, val_frac: float, test_frac: float) -> str:
+    position = int(text_hash(text)[:8], 16) / 0xFFFFFFFF
+    if position < test_frac:
+        return "test"
+    if position < test_frac + val_frac:
+        return "val"
+    return "train"
+
+
 def pack_documents(
     documents: Iterable[list[int]], context_len: int, eos_id: int
 ) -> Iterator[list[int]]:
@@ -75,3 +84,30 @@ def read_bin(path: str | Path) -> np.ndarray:
     if path.stat().st_size == 0:
         return np.empty(0, dtype=np.uint16)
     return np.memmap(path, dtype=np.uint16, mode="r")
+
+
+class PackedWriter:
+    def __init__(self, path: str | Path, context_len: int, eos_id: int) -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.context_len = context_len
+        self.eos_id = eos_id
+        self._buffer: list[int] = []
+        self._handle = self.path.open("wb")
+        self.tokens_written = 0
+
+    def add_document(self, token_ids: list[int]) -> None:
+        self._buffer.extend(token_ids)
+        self._buffer.append(self.eos_id)
+        self._flush()
+
+    def _flush(self) -> None:
+        while len(self._buffer) >= self.context_len:
+            chunk = self._buffer[: self.context_len]
+            np.asarray(chunk, dtype=np.uint16).tofile(self._handle)
+            self.tokens_written += self.context_len
+            self._buffer = self._buffer[self.context_len :]
+
+    def close(self) -> int:
+        self._handle.close()
+        return self.tokens_written

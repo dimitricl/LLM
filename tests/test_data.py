@@ -1,6 +1,15 @@
 import numpy as np
 
-from tinyllm.data import clean_text, dedupe, pack_documents, read_bin, split_documents, text_hash, write_bin
+from tinyllm.data import (
+    PackedWriter,
+    clean_text,
+    dedupe,
+    pack_documents,
+    read_bin,
+    split_documents,
+    text_hash,
+    write_bin,
+)
 
 
 def test_clean_text_strips_html_and_whitespace():
@@ -48,3 +57,13 @@ def test_bin_roundtrip(tmp_path):
     array = read_bin(path)
     assert array.dtype == np.uint16
     assert array.tolist() == [1, 2, 3, 4, 5, 6]
+
+
+def test_packed_writer_streams_complete_chunks(tmp_path):
+    path = tmp_path / "out.bin"
+    writer = PackedWriter(path, context_len=4, eos_id=9)
+    writer.add_document([1, 2, 3])
+    writer.add_document([4, 5, 6])
+    written = writer.close()
+    assert written == 8
+    assert read_bin(path).tolist() == [1, 2, 3, 9, 4, 5, 6, 9]

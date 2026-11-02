@@ -56,6 +56,12 @@ class DataConfig:
     tokenizer_path: str = "data/tokenizer.json"
     train_bin: str = "data/phase1/train.bin"
     val_bin: str = "data/phase1/val.bin"
+    sources: dict[str, float] = field(default_factory=dict)
+    val_frac: float = 0.01
+    test_frac: float = 0.01
+    min_chars: int = 200
+    max_chars: int = 100_000
+    test_bin: str = "data/phase1/test.bin"
 
 
 @dataclass(frozen=True)
@@ -69,12 +75,15 @@ class RunConfig:
 
 def load_config(path: str | Path) -> RunConfig:
     raw = json.loads(Path(path).read_text())
+    data_raw = raw.get("data", {})
+    if not data_raw.get("sources"):
+        data_raw["sources"] = {"tinystories": 1.0}
     return RunConfig(
         run_name=raw["run_name"],
         output_dir=raw.get("output_dir", "runs"),
         model=ModelConfig(**raw.get("model", {})),
         train=TrainConfig(**raw.get("train", {})),
-        data=DataConfig(**raw.get("data", {})),
+        data=DataConfig(**data_raw),
     )
 
 
