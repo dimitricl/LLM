@@ -1,0 +1,40 @@
+{
+  "run_name": "phase2_mix_extended",
+  "output_dir": "runs",
+  "model": {
+    "vocab_size": 16384,
+    "d_model": 768,
+    "n_layers": 16,
+    "n_heads": 12,
+    "n_kv_heads": 4,
+    "ffn_hidden": 2048,
+    "context_len": 512
+  },
+  "train": {
+    "micro_batch": 16,
+    "grad_accum": 8,
+    "lr": 0.0003,
+    "max_steps": 30518,
+    "eval_interval": 500,
+    "checkpoint_interval": 500,
+    "log_interval": 10,
+    "sample_interval": 1000,
+    "max_hours": 400,
+    "dtype": "bfloat16"
+  },
+  "data": {
+    "tokenizer_path": "data/phase2/tokenizer.json",
+    "train_bin": "data/phase2/train.bin",
+    "val_bin": "data/phase2/val.bin",
+    "test_bin": "data/phase2/test.bin",
+    "sources": {
+      "fineweb_edu": 0.65,
+      "wiki_en": 0.1,
+      "wiki_fr": 0.1,
+      "python": 0.1,
+      "tinystories": 0.05
+    },
+    "val_frac": 0.01,
+    "test_frac": 0.01
+  }
+}
