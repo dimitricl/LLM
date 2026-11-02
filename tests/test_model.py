@@ -6,6 +6,7 @@ from tinyllm.config import ModelConfig
 from tinyllm.model import (
     Attention,
     Block,
+    KVCache,
     MLP,
     RMSNorm,
     TinyLM,
@@ -136,3 +137,28 @@ def test_embeddings_are_tied():
     keys = [str(key) for key, _ in tree_flatten(model.parameters())]
     assert not any(key.startswith("lm_head") for key in keys)
     assert any(key.startswith("tok_emb") for key in keys)
+
+
+def test_cache_length_starts_at_zero():
+    assert KVCache().length == 0
+
+
+def test_kv_cache_matches_full_forward():
+    cfg = _cfg()
+    model = TinyLM(cfg)
+    mx.random.seed(3)
+    tokens = mx.random.randint(0, cfg.vocab_size, (1, 12))
+    full = model(tokens)
+
+    cache = model.make_cache()
+    prefill = model(tokens[:, :8], cache=cache)
+    assert cache[0].length == 8
+    assert mx.allclose(prefill, full[:, :8], atol=1e-4)
+
+    steps = []
+    for position in range(8, 12):
+        logits = model(tokens[:, position : position + 1], cache=cache)
+        steps.append(logits[:, 0, :])
+    incremental = mx.stack(steps, axis=1)
+    assert cache[0].length == 12
+    assert mx.allclose(incremental, full[:, 8:, :], atol=1e-4)

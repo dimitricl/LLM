@@ -47,6 +47,27 @@ def causal_mask(q_len: int, kv_len: int, dtype=mx.float32) -> mx.array:
     return mx.where(k_pos <= q_pos, 0.0, -mx.inf).astype(dtype)
 
 
+class KVCache:
+    def __init__(self) -> None:
+        self.keys: mx.array | None = None
+        self.values: mx.array | None = None
+
+    @property
+    def length(self) -> int:
+        return 0 if self.keys is None else self.keys.shape[2]
+
+    def update(
+        self, keys: mx.array, values: mx.array
+    ) -> tuple[mx.array, mx.array]:
+        if self.keys is None:
+            self.keys = keys
+            self.values = values
+        else:
+            self.keys = mx.concatenate([self.keys, keys], axis=2)
+            self.values = mx.concatenate([self.values, values], axis=2)
+        return self.keys, self.values
+
+
 class Attention(nn.Module):
     def __init__(self, cfg: ModelConfig) -> None:
         super().__init__()
@@ -142,3 +163,6 @@ class TinyLM(nn.Module):
         from mlx.utils import tree_flatten
 
         return sum(parameter.size for _, parameter in tree_flatten(self.parameters()))
+
+    def make_cache(self) -> list[KVCache]:
+        return [KVCache() for _ in self.layers]
