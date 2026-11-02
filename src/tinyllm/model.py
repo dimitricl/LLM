@@ -89,3 +89,56 @@ class Attention(nn.Module):
         probs = mx.softmax(scores, axis=-1)
         out = (probs @ v).transpose(0, 2, 1, 3).reshape(batch, seq_len, -1)
         return self.o_proj(out)
+
+
+class MLP(nn.Module):
+    def __init__(self, cfg: ModelConfig) -> None:
+        super().__init__()
+        self.gate_proj = nn.Linear(cfg.d_model, cfg.ffn_hidden, bias=False)
+        self.up_proj = nn.Linear(cfg.d_model, cfg.ffn_hidden, bias=False)
+        self.down_proj = nn.Linear(cfg.ffn_hidden, cfg.d_model, bias=False)
+
+    def __call__(self, x: mx.array) -> mx.array:
+        return self.down_proj(nn.silu(self.gate_proj(x)) * self.up_proj(x))
+
+
+class Block(nn.Module):
+    def __init__(self, cfg: ModelConfig) -> None:
+        super().__init__()
+        self.attn_norm = RMSNorm(cfg.d_model, cfg.rms_norm_eps)
+        self.attn = Attention(cfg)
+        self.ffn_norm = RMSNorm(cfg.d_model, cfg.rms_norm_eps)
+        self.ffn = MLP(cfg)
+
+    def __call__(
+        self, x: mx.array, cos: mx.array, sin: mx.array, cache=None
+    ) -> mx.array:
+        h = x + self.attn(self.attn_norm(x), cos, sin, cache)
+        return h + self.ffn(self.ffn_norm(h))
+
+
+class TinyLM(nn.Module):
+    def __init__(self, cfg: ModelConfig) -> None:
+        super().__init__()
+        self.cfg = cfg
+        self.tok_emb = nn.Embedding(cfg.vocab_size, cfg.d_model)
+        self.layers = [Block(cfg) for _ in range(cfg.n_layers)]
+        self.norm = RMSNorm(cfg.d_model, cfg.rms_norm_eps)
+
+    def __call__(self, tokens: mx.array, cache=None) -> mx.array:
+        x = self.tok_emb(tokens)
+        cos, sin = rope_tables(
+            self.cfg.context_len,
+            self.cfg.head_dim,
+            self.cfg.rope_theta,
+        )
+        for index, layer in enumerate(self.layers):
+            layer_cache = None if cache is None else cache[index]
+            x = layer(x, cos, sin, layer_cache)
+        x = self.norm(x)
+        return (x @ self.tok_emb.weight.T).astype(mx.float32)
+
+    def num_parameters(self) -> int:
+        from mlx.utils import tree_flatten
+
+        return sum(parameter.size for _, parameter in tree_flatten(self.parameters()))

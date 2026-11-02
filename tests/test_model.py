@@ -1,8 +1,18 @@
 import mlx.core as mx
 import numpy as np
+from mlx.utils import tree_flatten
 
 from tinyllm.config import ModelConfig
-from tinyllm.model import Attention, RMSNorm, apply_rope, causal_mask, rope_tables
+from tinyllm.model import (
+    Attention,
+    Block,
+    MLP,
+    RMSNorm,
+    TinyLM,
+    apply_rope,
+    causal_mask,
+    rope_tables,
+)
 
 
 def test_rms_norm_has_unit_rms():
@@ -83,3 +93,46 @@ def test_attention_is_causal():
     out_b = attention(changed, cos, sin)
     assert mx.allclose(out_a[:, :5], out_b[:, :5], atol=1e-5)
     assert not mx.allclose(out_a[:, 5:], out_b[:, 5:], atol=1e-5)
+
+
+def test_mlp_shape():
+    cfg = _cfg()
+    mlp = MLP(cfg)
+    assert mlp(mx.random.normal((2, 7, cfg.d_model))).shape == (2, 7, cfg.d_model)
+
+
+def test_block_shape():
+    cfg = _cfg()
+    block = Block(cfg)
+    x = mx.random.normal((2, 7, cfg.d_model))
+    cos, sin = rope_tables(7, cfg.head_dim, cfg.rope_theta)
+    assert block(x, cos, sin).shape == (2, 7, cfg.d_model)
+
+
+def test_tinylm_logits_shape_and_dtype():
+    cfg = _cfg()
+    model = TinyLM(cfg)
+    logits = model(mx.array([[1, 2, 3, 4]]))
+    assert logits.shape == (1, 4, cfg.vocab_size)
+    assert logits.dtype == mx.float32
+
+
+def test_parameter_count_matches_formula():
+    cfg = _cfg()
+    model = TinyLM(cfg)
+    attention = 2 * cfg.d_model**2 + 2 * cfg.d_model * cfg.n_kv_heads * cfg.head_dim
+    mlp = 3 * cfg.d_model * cfg.ffn_hidden
+    per_block = attention + mlp + 2 * cfg.d_model
+    expected = (
+        cfg.vocab_size * cfg.d_model
+        + cfg.n_layers * per_block
+        + cfg.d_model
+    )
+    assert model.num_parameters() == expected
+
+
+def test_embeddings_are_tied():
+    model = TinyLM(_cfg())
+    keys = [str(key) for key, _ in tree_flatten(model.parameters())]
+    assert not any(key.startswith("lm_head") for key in keys)
+    assert any(key.startswith("tok_emb") for key in keys)
