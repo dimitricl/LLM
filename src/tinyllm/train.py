@@ -18,7 +18,7 @@ from tinyllm.config import RunConfig, TrainConfig, load_config, save_config
 from tinyllm.dataset import TokenDataset
 from tinyllm.model import TinyLM
 
-
+PROMPTS = ["Once upon a time", "The little girl", "One day, the cat"]
 _STOP = {"requested": False}
 
 
@@ -121,6 +121,12 @@ def train(
         dataset.load_state(meta["dataset"])
 
     log_path = run_dir / "log.jsonl"
+    tokenizer = None
+    tokenizer_path = Path(cfg.data.tokenizer_path)
+    if tokenizer_path.is_file():
+        from tinyllm.tokenizer import TokenizerWrapper
+
+        tokenizer = TokenizerWrapper(tokenizer_path)
     tokens_per_step = (
         cfg.train.micro_batch * cfg.train.grad_accum * cfg.model.context_len
     )
@@ -162,6 +168,25 @@ def train(
             }
             with log_path.open("a") as handle:
                 handle.write(json.dumps(record) + "\n")
+
+        if tokenizer is not None and step % cfg.train.sample_interval == 0:
+            from tinyllm.sample import generate
+
+            samples_dir = run_dir / "samples"
+            samples_dir.mkdir(exist_ok=True)
+            blocks = []
+            for prompt in PROMPTS:
+                text = generate(
+                    model,
+                    tokenizer,
+                    prompt,
+                    max_tokens=120,
+                    temperature=0.8,
+                    top_p=0.9,
+                    seed=step,
+                )
+                blocks.append(f"--- {prompt}\n{text}\n")
+            (samples_dir / f"step_{step:07d}.txt").write_text("\n".join(blocks))
 
         if step == 100 and not force and step < cfg.train.max_steps:
             estimated_hours = elapsed / step * cfg.train.max_steps / 3600
