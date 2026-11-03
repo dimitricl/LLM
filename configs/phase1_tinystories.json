@@ -11,8 +11,8 @@
     "context_len": 512
   },
   "train": {
-    "micro_batch": 16,
-    "grad_accum": 8,
+    "micro_batch": 4,
+    "grad_accum": 32,
     "lr": 0.0006,
     "max_steps": 7629,
     "eval_interval": 500,

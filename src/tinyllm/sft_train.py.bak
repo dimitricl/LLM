@@ -1,0 +1,285 @@
+"""Supervised fine-tuning for TinyLLM. Does not modify the pretraining run."""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import shutil
+import signal
+import sys
+import time
+from pathlib import Path
+
+import mlx.core as mx
+import mlx.nn as nn
+import mlx.optimizers as optim
+import numpy as np
+from mlx.utils import tree_flatten, tree_map
+
+from tinyllm.checkpoint import load_checkpoint, save_checkpoint
+from tinyllm.config import load_config
+from tinyllm.dataset import TokenDataset
+from tinyllm.model import TinyLM
+from tinyllm.sft_dataset import SFTSequenceDataset
+
+_STOP = {"requested": False}
+
+
+def request_stop(signum, frame) -> None:
+    _STOP["requested"] = True
+
+
+def cast_tree(tree, dtype):
+    return tree_map(lambda value: value.astype(dtype), tree)
+
+
+def grad_norm(grads) -> mx.array:
+    total = mx.zeros(())
+    for _, gradient in tree_flatten(grads):
+        total = total + mx.sum(gradient.astype(mx.float32) ** 2)
+    return mx.sqrt(total)
+
+
+def clip_grads(grads, max_norm: float):
+    norm = grad_norm(grads)
+    scale = mx.minimum(1.0, max_norm / (norm + 1e-6))
+    return tree_map(lambda grad: grad * scale, grads), norm
+
+
+def masked_loss(model, tokens: mx.array, loss_mask: mx.array) -> mx.array:
+    logits = model(tokens[:, :-1])
+    targets = tokens[:, 1:]
+    losses = nn.losses.cross_entropy(logits, targets, reduction="none")
+    mask = loss_mask.astype(losses.dtype)
+    return mx.sum(losses * mask) / mx.maximum(mx.sum(mask), 1.0)
+
+
+class MixedBatcher:
+    """Sample SFT examples with occasional all-token TinyStories replay examples."""
+    def __init__(self, sft, replay, replay_ratio: float, seed: int):
+        if not 0.0 <= replay_ratio < 0.5:
+            raise ValueError("replay_ratio must be in [0, 0.5).")
+        self.sft = sft
+        self.replay = replay
+        self.replay_ratio = replay_ratio if replay is not None else 0.0
+        self.rng = np.random.default_rng(seed)
+
+    def next_batch(self, batch_size: int):
+        token_rows = []
+        mask_rows = []
+        for _ in range(batch_size):
+            use_replay = self.replay is not None and self.rng.random() < self.replay_ratio
+            if use_replay:
+                tokens = self.replay.next_batch(1)
+                mask = mx.ones((1, tokens.shape[1] - 1), dtype=mx.float32)
+            else:
+                tokens, mask = self.sft.next_batch(1)
+            token_rows.append(tokens)
+            mask_rows.append(mask)
+        return mx.concatenate(token_rows, axis=0), mx.concatenate(mask_rows, axis=0)
+
+    def state(self) -> dict:
+        return {
+            "sft": self.sft.state(),
+            "replay": None if self.replay is None else self.replay.state(),
+            "rng": self.rng.bit_generator.state,
+        }
+
+    def load_state(self, state: dict) -> None:
+        self.sft.load_state(state["sft"])
+        if self.replay is not None and state.get("replay") is not None:
+            self.replay.load_state(state["replay"])
+        if state.get("rng") is not None:
+            self.rng.bit_generator.state = state["rng"]
+
+
+def learning_rate(step: int, total_steps: int, base_lr: float, warmup_ratio: float = 0.03) -> float:
+    warmup = max(1, int(total_steps * warmup_ratio))
+    if step < warmup:
+        return base_lr * (step + 1) / warmup
+    progress = (step - warmup) / max(1, total_steps - warmup)
+    return base_lr * (0.1 + 0.9 * 0.5 * (1.0 + math.cos(math.pi * min(progress, 1.0))))
+
+
+def evaluate(model, dataset: SFTSequenceDataset, batch_size: int, batches: int) -> float:
+    count = min(batches, max(1, len(dataset) // batch_size))
+    losses = []
+    for _ in range(count):
+        tokens, mask = dataset.next_batch(batch_size)
+        losses.append(float(masked_loss(model, tokens, mask)))
+    return float(np.mean(losses))
+
+
+def rotate_checkpoints(checkpoint_dir: Path, keep: int = 3) -> None:
+    dirs = sorted(
+        (p for p in checkpoint_dir.glob("step_*") if p.is_dir()),
+        key=lambda p: int(p.name.split("_")[1]),
+    )
+    for old in dirs[:-keep]:
+        shutil.rmtree(old)
+
+
+def train(args) -> dict:
+    cfg = load_config(args.base_config)
+    context_len = cfg.model.context_len
+    dtype = mx.bfloat16 if args.dtype == "bfloat16" else mx.float32
+
+    model = TinyLM(cfg.model)
+    # Load ONLY pretrained weights. The SFT optimizer starts from scratch.
+    load_checkpoint(args.base_checkpoint, model, optimizer=None)
+    work = TinyLM(cfg.model)
+    work.update(cast_tree(model.parameters(), dtype))
+
+    base_run_dir = Path(args.base_checkpoint).resolve().parent.parent
+    run_dir = Path(args.output_dir).resolve()
+    if run_dir == base_run_dir or base_run_dir in run_dir.parents:
+        raise ValueError("SFT output_dir must not be inside the pretrained run directory.")
+    if (run_dir / "checkpoints").exists() and any((run_dir / "checkpoints").iterdir()) and not args.resume:
+        raise FileExistsError(
+            f"{run_dir / 'checkpoints'} already contains checkpoints; use --resume "
+            "or choose a new --output-dir to avoid overwriting an existing run."
+        )
+
+    optimizer = optim.AdamW(
+        learning_rate=args.lr,
+        betas=[0.9, 0.95],
+        eps=1e-8,
+        weight_decay=args.weight_decay,
+    )
+
+    sft = SFTSequenceDataset(args.train_tokens, args.train_mask, context_len, args.seed)
+    replay = None
+    if args.replay_bin and args.replay_ratio > 0:
+        replay = TokenDataset(args.replay_bin, context_len, args.seed + 1)
+    batcher = MixedBatcher(sft, replay, args.replay_ratio, args.seed + 2)
+
+    run_dir = Path(args.output_dir)
+    checkpoint_dir = run_dir / "checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    start_step = 0
+    best_val = float("inf")
+    if args.resume:
+        meta = load_checkpoint(args.resume, model, optimizer)
+        start_step = int(meta["step"])
+        best_val = float(meta.get("best_val", best_val))
+        if meta.get("batcher"):
+            batcher.load_state(meta["batcher"])
+
+    run_config = vars(args).copy()
+    run_config["model_config"] = vars(cfg.model)
+    (run_dir / "sft_config.json").write_text(json.dumps(run_config, indent=2, default=str) + "\n")
+    log_path = run_dir / "log.jsonl"
+    loss_and_grad = nn.value_and_grad(work, masked_loss)
+
+    signal.signal(signal.SIGINT, request_stop)
+    _STOP["requested"] = False
+    start = time.perf_counter()
+    tokens_per_step = args.micro_batch * args.grad_accum * context_len
+
+    completed_step = start_step
+    for step in range(start_step, args.steps):
+        current_lr = learning_rate(step, args.steps, args.lr)
+        optimizer.learning_rate = current_lr
+        # Match the original training design: BF16 forward/backward weights,
+        # FP32 master weights and optimizer state.
+        work.update(cast_tree(model.parameters(), dtype))
+        accumulated = None
+        losses = []
+        for _ in range(args.grad_accum):
+            tokens, mask = batcher.next_batch(args.micro_batch)
+            loss, grads = loss_and_grad(tokens, mask)
+            grads = cast_tree(grads, mx.float32)
+            accumulated = grads if accumulated is None else tree_map(lambda a, b: a + b, accumulated, grads)
+            mx.eval(accumulated, loss)
+            losses.append(float(loss))
+
+        accumulated = tree_map(lambda grad: grad / args.grad_accum, accumulated)
+        accumulated, norm = clip_grads(accumulated, args.grad_clip)
+        optimizer.update(model, accumulated)
+        mx.eval(model.parameters(), optimizer.state)
+        completed_step = step + 1
+
+        if completed_step % args.log_interval == 0:
+            record = {
+                "step": completed_step,
+                "tokens_seen": completed_step * tokens_per_step,
+                "loss": float(np.mean(losses)),
+                "lr": current_lr,
+                "grad_norm": float(norm),
+                "elapsed_s": time.perf_counter() - start,
+            }
+            with log_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record) + "\n")
+            print(json.dumps(record), flush=True)
+
+        val_loss = None
+        if completed_step % args.eval_interval == 0 or completed_step == args.steps:
+            val_ds = SFTSequenceDataset(args.val_tokens, args.val_mask, context_len, seed=12345)
+            val_loss = evaluate(model, val_ds, min(args.micro_batch, len(val_ds)), args.eval_batches)
+            print(json.dumps({"step": completed_step, "val_loss": val_loss}), flush=True)
+
+        should_save = (
+            completed_step % args.save_interval == 0
+            or completed_step % args.eval_interval == 0
+            or completed_step == args.steps
+            or _STOP["requested"]
+        )
+        if should_save:
+            meta = {
+                "step": completed_step,
+                "best_val": min(best_val, val_loss) if val_loss is not None else best_val,
+                "batcher": batcher.state(),
+                "elapsed_s": time.perf_counter() - start,
+                "base_checkpoint": str(args.base_checkpoint),
+            }
+            step_path = checkpoint_dir / f"step_{completed_step:07d}"
+            save_checkpoint(step_path, model, optimizer, meta)
+            save_checkpoint(checkpoint_dir / "latest", model, optimizer, meta)
+            if val_loss is not None and val_loss < best_val:
+                best_val = val_loss
+                meta["best_val"] = best_val
+                save_checkpoint(checkpoint_dir / "best", model, optimizer, meta)
+            rotate_checkpoints(checkpoint_dir, keep=3)
+
+        if _STOP["requested"]:
+            print("SIGINT received: checkpoint saved; stopping.", flush=True)
+            break
+
+    return {"step": completed_step, "best_val": best_val, "run_dir": str(run_dir)}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Fine-tune TinyLLM on assistant conversations.")
+    parser.add_argument("--base-config", default="runs/phase1_tinystories/config.json")
+    parser.add_argument("--base-checkpoint", default="runs/phase1_tinystories/checkpoints/best")
+    parser.add_argument("--train-tokens", default="data/sft/packed/train.tokens.bin")
+    parser.add_argument("--train-mask", default="data/sft/packed/train.mask.bin")
+    parser.add_argument("--val-tokens", default="data/sft/packed/val.tokens.bin")
+    parser.add_argument("--val-mask", default="data/sft/packed/val.mask.bin")
+    parser.add_argument("--replay-bin", default="data/phase1/train.bin")
+    parser.add_argument("--output-dir", default="runs/sft_bilingual")
+    parser.add_argument("--steps", type=int, default=2000)
+    parser.add_argument("--micro-batch", type=int, default=4)
+    parser.add_argument("--grad-accum", type=int, default=8)
+    parser.add_argument("--lr", type=float, default=2e-5)
+    parser.add_argument("--weight-decay", type=float, default=0.01)
+    parser.add_argument("--grad-clip", type=float, default=1.0)
+    parser.add_argument("--replay-ratio", type=float, default=0.05)
+    parser.add_argument("--eval-interval", type=int, default=100)
+    parser.add_argument("--eval-batches", type=int, default=20)
+    parser.add_argument("--save-interval", type=int, default=250)
+    parser.add_argument("--log-interval", type=int, default=10)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--dtype", choices=("bfloat16", "float32"), default="bfloat16")
+    parser.add_argument("--resume", help="Resume from an SFT checkpoint (loads its optimizer state).")
+    args = parser.parse_args()
+    if args.steps < 1 or args.micro_batch < 1 or args.grad_accum < 1:
+        parser.error("steps, micro-batch and grad-accum must be positive.")
+    print(json.dumps(train(args), indent=2), flush=True)
+
+
+if __name__ == "__main__":
+    main()
+

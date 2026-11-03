@@ -1,0 +1,211 @@
+"""Prepare bilingual conversational JSONL into packed token/mask binaries.
+
+Input JSONL format:
+{"messages":[{"role":"user","content":"..."},{"role":"assistant","content":"..."}]}
+
+Supported roles: system (only before the first user), user, assistant.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+from typing import TextIO
+
+import numpy as np
+
+from tinyllm.tokenizer import TokenizerWrapper
+
+
+def stable_split(messages: list[dict], val_frac: float, test_frac: float) -> str:
+    canonical = json.dumps(messages, ensure_ascii=False, sort_keys=True)
+    value = int(hashlib.sha1(canonical.encode("utf-8")).hexdigest()[:8], 16) / 0xFFFFFFFF
+    if value < test_frac:
+        return "test"
+    if value < test_frac + val_frac:
+        return "val"
+    return "train"
+
+
+def encode_messages(messages: list[dict], tokenizer: TokenizerWrapper) -> tuple[list[int], list[int]]:
+    user_id = tokenizer._tok.token_to_id("<|user|>")
+    assistant_id = tokenizer._tok.token_to_id("<|assistant|>")
+    if user_id is None or assistant_id is None:
+        raise ValueError("Tokenizer must contain <|user|> and <|assistant|> special tokens.")
+
+    normalized: list[tuple[str, str]] = []
+    system_text: list[str] = []
+    for message in messages:
+        role = str(message.get("role", "")).lower().strip()
+        content = str(message.get("content", "")).strip()
+        if not content:
+            continue
+        if role == "system":
+            if any(r != "system" for r, _ in normalized):
+                raise ValueError("system messages are only supported before the first user message.")
+            system_text.append(content)
+        elif role in ("user", "assistant"):
+            normalized.append((role, content))
+        else:
+            raise ValueError(f"Unsupported role: {role!r}; expected system/user/assistant.")
+
+    if not normalized or normalized[0][0] != "user":
+        raise ValueError("Each conversation must begin with a user message.")
+    if normalized[-1][0] != "assistant":
+        raise ValueError("Each conversation must end with an assistant message.")
+
+    if system_text:
+        first_role, first_content = normalized[0]
+        normalized[0] = (first_role, "System instructions: " + "\n\n".join(system_text) + "\n\n" + first_content)
+
+    ids: list[int] = []
+    mask: list[int] = []
+    for role, content in normalized:
+        if role == "user":
+            ids.append(int(user_id))
+            mask.append(0)
+            content_ids = tokenizer.encode(content)
+            ids.extend(content_ids)
+            mask.extend([0] * len(content_ids))
+        else:
+            # Predicting the assistant marker teaches the model when to start answering.
+            ids.append(int(assistant_id))
+            mask.append(1)
+            content_ids = tokenizer.encode(content)
+            ids.extend(content_ids)
+            mask.extend([1] * len(content_ids))
+            ids.append(tokenizer.eos_id)
+            mask.append(1)
+
+    return ids, mask
+
+
+def prepare(
+    input_path: Path,
+    tokenizer_path: Path,
+    output_dir: Path,
+    context_len: int,
+    val_frac: float,
+    test_frac: float,
+    min_assistant_chars: int,
+) -> dict:
+    if val_frac < 0 or test_frac < 0 or val_frac + test_frac >= 0.5:
+        raise ValueError("val_frac and test_frac must be >= 0 and sum to less than 0.5.")
+    tokenizer = TokenizerWrapper(tokenizer_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    names = ("train", "val", "test")
+    temp_paths = {
+        name: (
+            output_dir / f"{name}.tokens.bin.tmp",
+            output_dir / f"{name}.mask.bin.tmp",
+        )
+        for name in names
+    }
+    handles: dict[str, tuple[object, object]] = {}
+    stats = {
+        name: {"conversations": 0, "tokens": 0, "assistant_tokens": 0}
+        for name in names
+    }
+
+    try:
+        for name, (token_path, mask_path) in temp_paths.items():
+            handles[name] = (token_path.open("wb"), mask_path.open("wb"))
+
+        with input_path.open("r", encoding="utf-8") as source:
+            for line_no, line in enumerate(source, 1):
+                if not line.strip():
+                    continue
+                try:
+                    record = json.loads(line)
+                    messages = record["messages"]
+                    if not isinstance(messages, list):
+                        raise ValueError("'messages' must be a list.")
+                    assistant_chars = sum(
+                        len(str(m.get("content", "")))
+                        for m in messages
+                        if str(m.get("role", "")).lower() == "assistant"
+                    )
+                    if assistant_chars < min_assistant_chars:
+                        continue
+                    ids, mask = encode_messages(messages, tokenizer)
+                except Exception as exc:
+                    raise ValueError(f"Invalid conversation at {input_path}:{line_no}: {exc}") from exc
+
+                split = stable_split(messages, val_frac, test_frac)
+                token_handle, mask_handle = handles[split]
+                np.asarray(ids, dtype=np.uint16).tofile(token_handle)
+                np.asarray(mask, dtype=np.uint8).tofile(mask_handle)
+                stats[split]["conversations"] += 1
+                stats[split]["tokens"] += len(ids)
+                stats[split]["assistant_tokens"] += int(sum(mask))
+
+        for pair in handles.values():
+            pair[0].close()
+            pair[1].close()
+
+        for name in names:
+            token_tmp, mask_tmp = temp_paths[name]
+            token_final = output_dir / f"{name}.tokens.bin"
+            mask_final = output_dir / f"{name}.mask.bin"
+            os.replace(token_tmp, token_final)
+            os.replace(mask_tmp, mask_final)
+            required = {
+                "train": True,
+                "val": val_frac > 0,
+                "test": test_frac > 0,
+            }
+
+            if required[name] and stats[name]["tokens"] < context_len + 1:
+                raise ValueError(
+                    f"{name} split has only {stats[name]['tokens']} tokens; "
+                    f"need at least context_len + 1 = {context_len + 1}. "
+                    "Add more conversations or adjust the split fractions."
+                )
+
+        metadata = {
+            "input": str(input_path),
+            "tokenizer": str(tokenizer_path),
+            "vocab_size": tokenizer.vocab_size,
+            "context_len": context_len,
+            "val_frac": val_frac,
+            "test_frac": test_frac,
+            "splits": stats,
+        }
+        (output_dir / "meta.json").write_text(json.dumps(metadata, indent=2, ensure_ascii=False) + "\n")
+        return metadata
+    except BaseException:
+        for pair in handles.values():
+            for handle in pair:
+                try:
+                    handle.close()
+                except Exception:
+                    pass
+        for pair in temp_paths.values():
+            for path in pair:
+                path.unlink(missing_ok=True)
+        raise
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Pack conversational JSONL for TinyLLM SFT.")
+    parser.add_argument("--input", required=True, help="JSONL with one {'messages': [...]} conversation per line.")
+    parser.add_argument("--tokenizer", default="data/tokenizer.json")
+    parser.add_argument("--output-dir", default="data/sft/packed")
+    parser.add_argument("--context-len", type=int, default=512)
+    parser.add_argument("--val-frac", type=float, default=0.02)
+    parser.add_argument("--test-frac", type=float, default=0.02)
+    parser.add_argument("--min-assistant-chars", type=int, default=1)
+    args = parser.parse_args()
+    result = prepare(
+        Path(args.input), Path(args.tokenizer), Path(args.output_dir),
+        args.context_len, args.val_frac, args.test_frac, args.min_assistant_chars,
+    )
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+if __name__ == "__main__":
+    main()
+

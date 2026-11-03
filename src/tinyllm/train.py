@@ -134,10 +134,12 @@ def train(
     dataset = TokenDataset(cfg.data.train_bin, cfg.model.context_len, cfg.train.seed)
 
     step = 0
+    start_step = 0
     best_val = float("inf")
     if resume is not None:
         meta = load_checkpoint(resume, model, optimizer)
         step = int(meta["step"])
+        start_step = step
         best_val = float(meta.get("best_val", best_val))
         dataset.load_state(meta["dataset"])
 
@@ -192,7 +194,7 @@ def train(
                 "loss": float(loss),
                 "lr": learning_rate,
                 "grad_norm": float(norm),
-                "tokens_per_s": step * tokens_per_step / elapsed,
+                "tokens_per_s": (step - start_step) * tokens_per_step / elapsed,
                 "peak_memory_mb": _peak_memory() / 2**20,
             }
             with log_path.open("a") as handle:

@@ -1,0 +1,61 @@
+"""Sequence dataset for SFT tokens and per-token loss masks."""
+from __future__ import annotations
+
+from pathlib import Path
+
+import mlx.core as mx
+import numpy as np
+
+
+class SFTSequenceDataset:
+    def __init__(self, token_path: str | Path, mask_path: str | Path, context_len: int, seed: int):
+        self.tokens = np.memmap(token_path, dtype=np.uint16, mode="r")
+        self.masks = np.memmap(mask_path, dtype=np.uint8, mode="r")
+        if len(self.tokens) != len(self.masks):
+            raise ValueError("Token and mask files have different lengths.")
+        self.context_len = context_len
+        self.seed = seed
+        self.epoch = 0
+        self.cursor = 0
+        self.num_sequences = max(0, (len(self.tokens) - 1) // context_len)
+        if self.num_sequences < 1:
+            raise ValueError(f"Dataset needs at least {context_len + 1} packed tokens.")
+        self.order = np.empty(0, dtype=np.int64)
+        self._shuffle()
+
+    def __len__(self) -> int:
+        return self.num_sequences
+
+    def _shuffle(self) -> None:
+        rng = np.random.default_rng(self.seed + self.epoch)
+        self.order = rng.permutation(self.num_sequences).astype(np.int64)
+
+    def _sequence(self, index: int) -> tuple[np.ndarray, np.ndarray]:
+        start = int(index) * self.context_len
+        tokens = self.tokens[start : start + self.context_len + 1]
+        # Loss mask aligns with targets tokens[:, 1:], not inputs tokens[:, :-1].
+        mask = self.masks[start + 1 : start + self.context_len + 1]
+        return tokens, mask
+
+    def next_batch(self, batch_size: int) -> tuple[mx.array, mx.array]:
+        if batch_size < 1 or batch_size > len(self.order):
+            raise ValueError(f"batch_size must be between 1 and {len(self.order)}.")
+        if self.cursor + batch_size > len(self.order):
+            self.epoch += 1
+            self.cursor = 0
+            self._shuffle()
+        indices = self.order[self.cursor : self.cursor + batch_size]
+        self.cursor += batch_size
+        rows = [self._sequence(i) for i in indices]
+        tokens = np.stack([row[0] for row in rows]).astype(np.int32)
+        masks = np.stack([row[1] for row in rows]).astype(np.float32)
+        return mx.array(tokens), mx.array(masks)
+
+    def state(self) -> dict:
+        return {"epoch": self.epoch, "cursor": self.cursor}
+
+    def load_state(self, state: dict) -> None:
+        self.epoch = int(state["epoch"])
+        self.cursor = int(state["cursor"])
+        self._shuffle()
+
