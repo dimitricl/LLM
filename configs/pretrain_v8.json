@@ -1,0 +1,50 @@
+{
+  "run_name": "pretrain_v8",
+  "output_dir": "runs",
+  "model": {
+    "vocab_size": 24576,
+    "d_model": 512,
+    "n_layers": 12,
+    "n_heads": 8,
+    "n_kv_heads": 2,
+    "ffn_hidden": 1408,
+    "context_len": 512,
+    "rope_theta": 10000.0,
+    "rms_norm_eps": 1e-5
+  },
+  "train": {
+    "micro_batch": 4,
+    "grad_accum": 64,
+    "lr": 0.0006,
+    "min_lr_ratio": 0.1,
+    "warmup_ratio": 0.03,
+    "weight_decay": 0.1,
+    "beta1": 0.9,
+    "beta2": 0.95,
+    "grad_clip": 1.0,
+    "max_steps": 2300,
+    "eval_interval": 100,
+    "checkpoint_interval": 100,
+    "log_interval": 10,
+    "sample_interval": 500,
+    "max_hours": 24.0,
+    "seed": 42,
+    "dtype": "bfloat16"
+  },
+  "data": {
+    "tokenizer_path": "data/v8/tokenizer.json",
+    "train_bin": "data/v8/pretrain/tokenized/train.bin",
+    "val_bin": "data/v8/pretrain/tokenized/val.bin",
+    "test_bin": "data/v8/pretrain/tokenized/test.bin",
+    "sources": {
+      "fr_wikipedia": 0.30,
+      "fr_fineweb2": 0.20,
+      "en_fineweb_edu": 0.378,
+      "en_wikipedia": 0.0585,
+      "en_tinystories": 0.0135,
+      "code_python": 0.05
+    },
+    "val_frac": 0.015,
+    "test_frac": 0.015
+  }
+}
