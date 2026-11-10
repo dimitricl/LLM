@@ -32,11 +32,11 @@ def test_pretrain_v8_config_valid():
     assert cfg.train.warmup_ratio == 0.03
     assert cfg.train.weight_decay == 0.1
     assert cfg.train.grad_clip == 1.0
-    assert cfg.train.max_steps == 2300
+    assert cfg.train.max_steps == 4700
     assert cfg.train.eval_interval == 100
     assert cfg.train.checkpoint_interval == 100
     assert cfg.train.sample_interval == 500
-    assert cfg.train.max_hours == 24.0
+    assert cfg.train.max_hours == 48.0
     assert cfg.train.dtype == "bfloat16"
 
     # Data config
@@ -54,18 +54,18 @@ def test_pretrain_v8_tokens_per_step():
     tokens_per_step = (
         cfg.train.micro_batch * cfg.train.grad_accum * cfg.model.context_len
     )
-    assert tokens_per_step == 4 * 64 * 512  # 131,072
+    assert tokens_per_step == 4 * 64 * 512  # 131,072 tokens/step
 
 
 def test_pretrain_v8_estimated_total_tokens():
-    """Verify max_steps * tokens_per_step yields ~300M tokens."""
+    """Verify max_steps * tokens_per_step yields ~600M tokens."""
     cfg = load_config("configs/pretrain_v8.json")
     tokens_per_step = (
         cfg.train.micro_batch * cfg.train.grad_accum * cfg.model.context_len
     )
     total_tokens = cfg.train.max_steps * tokens_per_step
-    # 2300 * 131072 = 301,465,600 ~ 300M
-    assert 300_000_000 <= total_tokens <= 305_000_000
+    # 4700 * 131072 = 616,038,400 ~ 613M tokens
+    assert 610_000_000 <= total_tokens <= 620_000_000
 
 
 def test_model_param_count():
