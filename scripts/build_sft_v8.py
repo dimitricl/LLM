@@ -632,8 +632,44 @@ def prepare_sft_v8(
         print("\nProceeding with available data for now...")
         print("You can add more FR data later and re-run.")
 
-    # For now, we'll just report the stats without actual packing
-    # The packing will use the existing sft_data.py infrastructure
+    # Write conversations to temporary JSONL for packing
+    temp_dir = output_dir.parent / f".{output_dir.name}.tmp"
+    temp_dir.mkdir(parents=True, exist_ok=True)
+
+    temp_jsonl = temp_dir / "conversations.jsonl"
+    with temp_jsonl.open("w", encoding="utf-8") as f:
+        for messages, source in final_conversations:
+            f.write(json.dumps({"messages": messages, "source": source}, ensure_ascii=False) + "\n")
+
+    print(f"\nWrote {len(final_conversations)} conversations to {temp_jsonl}")
+
+    # Now use sft_data.prepare for packing
+    from tinyllm.sft_data import prepare
+
+    policy = WindowPolicy(
+        context_len=context_len,
+        max_question_tokens=256,
+        min_response_context=64,
+        min_history_context=32,
+    )
+
+    print("\nPacking conversations...")
+    metadata = prepare(
+        input_paths=[temp_jsonl],
+        tokenizer_path=tokenizer_path,
+        output_dir=output_dir,
+        context_len=context_len,
+        val_frac=val_frac,
+        test_frac=test_frac,
+        min_assistant_chars=1,
+        max_question_tokens=256,
+        min_response_context=64,
+        min_history_context=32,
+    )
+
+    # Clean up temp dir
+    import shutil
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
     result = {
         "total_conversations_raw": sum(s.examined for s in source_stats.values()),
@@ -647,6 +683,7 @@ def prepare_sft_v8(
         "in_scope_control_count": len(in_scope_examples),
         "calibrated_ngram_threshold": calibrated_threshold,
         "source_stats": {name: s.to_dict() for name, s in source_stats.items()},
+        "packing_metadata": metadata,
     }
 
     return result
