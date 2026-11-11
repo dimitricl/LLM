@@ -60,7 +60,11 @@ def main():
     parser = argparse.ArgumentParser(description="TinyLLM Chat")
     parser.add_argument("--run-dir", required=True)
     parser.add_argument("--checkpoint", default="best")
-    parser.add_argument("--temperature", type=float, default=0.7)
+    parser.add_argument("--temperature", type=float, default=0.65)
+    parser.add_argument("--top-k", type=int, default=40)
+    parser.add_argument("--top-p", type=float, default=0.9)
+    parser.add_argument("--repetition-penalty", type=float, default=1.15)
+    parser.add_argument("--no-repeat-ngram-size", type=int, default=4)
     parser.add_argument("--max-tokens", type=int, default=120)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
@@ -73,6 +77,8 @@ def main():
 
     print(f"Modèle chargé : {model.num_parameters():,} paramètres")
     print(f"Contexte : {cfg.model.context_len} tokens")
+    print(f"Décodage: temp={args.temperature}, top_k={args.top_k}, top_p={args.top_p}")
+    print(f"  rep_penalty={args.repetition_penalty}, no_repeat_ngram={args.no_repeat_ngram_size}")
     print("\nTinyLLM Chat")
     print("Commandes : /reset | /exit\n")
 
@@ -118,8 +124,14 @@ def main():
             prompt_ids,
             max_tokens=remaining,
             temperature=args.temperature,
-            top_p=0.9,
+            top_k=args.top_k,
+            top_p=args.top_p,
+            repetition_penalty=args.repetition_penalty,
+            no_repeat_ngram_size=args.no_repeat_ngram_size,
+            stop_at_eos=True,
             eos_id=tokenizer.eos_id,
+            stop_on_user_token=True,
+            user_id=tokenizer.user_id,
             seed=args.seed + len(turns),
         )
 

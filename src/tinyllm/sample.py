@@ -2,21 +2,46 @@ import argparse
 from pathlib import Path
 
 import mlx.core as mx
+import numpy as np
 
 from tinyllm.config import RunConfig, load_config
 from tinyllm.model import TinyLM
 from tinyllm.tokenizer import TokenizerWrapper
+from tinyllm.decoding import (
+    count_ngram_repetitions,
+    apply_no_repeat_ngram_mask as apply_no_repeat_ngram_mask_numpy,
+    compute_repetition_penalty as compute_repetition_penalty_numpy,
+)
 
 
 def apply_repetition_penalty(
     logits: mx.array, token_ids: list[int], penalty: float
 ) -> mx.array:
+    """MLX version of repetition penalty (for backward compatibility)."""
     if penalty <= 1.0 or not token_ids:
         return logits
     ids = mx.array(sorted(set(token_ids)))
     selected = logits[ids]
     penalized = mx.where(selected > 0, selected / penalty, selected * penalty)
     return logits.at[ids].add(penalized - selected)
+
+
+def apply_no_repeat_ngram_mask(
+    logits: mx.array, token_ids: list[int], n: int = 4
+) -> mx.array:
+    """
+    Apply no-repeat n-gram penalty using numpy logic on MLX array.
+    This prevents repeating the same n-gram.
+    """
+    if len(token_ids) < n - 1:
+        return logits
+
+    # Convert to numpy for processing
+    logits_np = np.array(logits)
+    logits_np = apply_no_repeat_ngram_mask_numpy(logits_np, token_ids, n=n)
+
+    # Convert back to MLX
+    return mx.array(logits_np)
 
 
 def filter_logits(
@@ -60,8 +85,11 @@ def generate_ids(
     top_k: int | None = None,
     top_p: float | None = 0.9,
     repetition_penalty: float = 1.0,
+    no_repeat_ngram_size: int = 0,
     stop_at_eos: bool = True,
     eos_id: int | None = None,
+    stop_on_user_token: bool = False,
+    user_id: int | None = None,
     seed: int = 0,
 ) -> list[int]:
     if not prompt_ids:
@@ -76,13 +104,27 @@ def generate_ids(
     for _ in range(max_tokens):
         if cache[0].length >= model.cfg.context_len:
             break
+
+        # Apply repetition penalty
         logits = apply_repetition_penalty(
             logits, prompt_ids + generated, repetition_penalty
         )
+
+        # Apply no-repeat n-gram mask if enabled
+        if no_repeat_ngram_size > 0:
+            logits = apply_no_repeat_ngram_mask(
+                logits, prompt_ids + generated, n=no_repeat_ngram_size
+            )
+
         key, subkey = mx.random.split(key)
         token = sample_token(logits, temperature, subkey, top_k, top_p)
+
+        # Stop conditions
         if stop_at_eos and eos_id is not None and token == eos_id:
             break
+        if stop_on_user_token and user_id is not None and token == user_id:
+            break
+
         generated.append(token)
         logits = model(mx.array([[token]], dtype=mx.int32), cache=cache)[0, -1, :]
     return prompt_ids + generated
@@ -94,11 +136,13 @@ def generate(
     prompt: str,
     **kwargs,
 ) -> str:
+    """Generate text with optional decoding parameters."""
     return tokenizer.decode(
         generate_ids(
             model,
             tokenizer.encode(prompt),
             eos_id=tokenizer.eos_id,
+            user_id=tokenizer.user_id,
             **kwargs,
         )
     )
@@ -124,9 +168,10 @@ def main() -> None:
     parser.add_argument("--prompt", required=True)
     parser.add_argument("--max-tokens", type=int, default=200)
     parser.add_argument("--temperature", type=float, default=0.7)
-    parser.add_argument("--top-k", type=int)
+    parser.add_argument("--top-k", type=int, default=40)
     parser.add_argument("--top-p", type=float, default=0.9)
     parser.add_argument("--repetition-penalty", type=float, default=1.0)
+    parser.add_argument("--no-repeat-ngram-size", type=int, default=0)
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
     model, tokenizer, _ = load_run_model(args.run_dir, args.checkpoint)
@@ -140,6 +185,7 @@ def main() -> None:
             top_k=args.top_k,
             top_p=args.top_p,
             repetition_penalty=args.repetition_penalty,
+            no_repeat_ngram_size=args.no_repeat_ngram_size,
             seed=args.seed,
         )
     )
