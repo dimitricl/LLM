@@ -14,6 +14,7 @@ from scripts.build_sft_v8 import (
     convert_alpaca,
     convert_openorca,
     convert_to_messages,
+    convert_messages,
     compute_ngram_repetition_ratio,
     has_final_punctuation,
     has_latex,
@@ -77,6 +78,38 @@ def test_convert_openorca():
     messages = convert_openorca(record)
     assert messages is not None
     assert len(messages) == 2
+
+
+def test_convert_messages():
+    """Raw files that already use {"messages": [...]} must be accepted."""
+    record = {
+        "messages": [
+            {"role": "user", "content": "Bonjour"},
+            {"role": "assistant", "content": "Bonjour !"},
+        ]
+    }
+    messages = convert_messages(record)
+    assert messages is not None
+    assert len(messages) == 2
+
+    # The shape-based dispatcher must find it without a filename hint.
+    messages = convert_to_messages(record, "general_fr")
+    assert messages is not None
+    assert messages[0]["role"] == "user"
+
+
+def test_detect_language_realistic():
+    """Require a real FR/EN margin, not substring matches."""
+    fr_text = (
+        "Je pense que la voiture est dans le garage et que nous devons "
+        "partir avec elle pour aller au marché."
+    )
+    en_text = (
+        "I think that the car is in the garage and that we should leave "
+        "with it to go to the market."
+    )
+    assert detect_language(fr_text) == "fr"
+    assert detect_language(en_text) == "en"
 
 
 def test_convert_to_messages():

@@ -148,17 +148,77 @@ def convert_openorca(record: dict) -> Optional[list[dict]]:
     ]
 
 
-def convert_to_messages(record: dict, source: str) -> Optional[list[dict]]:
-    """Convert any supported format to messages."""
-    converters = {
-        "ultrachat": convert_ultrachat,
-        "openhermes": convert_openhermes,
-        "slimorca": convert_openhermes,  # Same format
-        "alpaca": convert_alpaca,
-        "openorca": convert_openorca,
-    }
+def convert_messages(record: dict) -> Optional[list[dict]]:
+    """Convert an already normalised ``{"messages": [...]}`` record."""
+    raw_messages = record.get("messages")
 
-    converter = converters.get(source)
+    if not isinstance(raw_messages, list):
+        return None
+
+    messages = []
+
+    for message in raw_messages:
+        if not isinstance(message, dict):
+            continue
+
+        role = str(message.get("role", "")).strip().lower()
+        content = message.get("content")
+
+        if not isinstance(content, str) or not content.strip():
+            continue
+
+        if role in ("human", "user"):
+            role = "user"
+        elif role in ("gpt", "assistant", "model"):
+            role = "assistant"
+        elif role != "system":
+            continue
+
+        messages.append({"role": role, "content": content.strip()})
+
+    if len(messages) < 2:
+        return None
+
+    return messages
+
+
+# Filename hints are only used as a fallback: most raw files carry their
+# format in the record itself, and several sources (general_fr/en,
+# coding_fr, teacher_responses) are already in ``messages`` form.
+_CONVERTERS = {
+    "ultrachat": convert_ultrachat,
+    "openhermes": convert_openhermes,
+    "slimorca": convert_openhermes,  # Same format
+    "alpaca": convert_alpaca,
+    "openorca": convert_openorca,
+    "general_fr": convert_messages,
+    "general_en": convert_messages,
+    "coding_fr": convert_messages,
+    "teacher_responses": convert_messages,
+    "combined_with_teacher": convert_messages,
+    "combined_v7": convert_messages,
+}
+
+
+def _detect_converter(record: dict):
+    """Pick a converter from the record shape, not from the filename."""
+    if isinstance(record.get("messages"), list):
+        return convert_messages
+    if isinstance(record.get("conversations"), list):
+        return convert_openhermes
+    if isinstance(record.get("data"), list):
+        return convert_ultrachat
+    if "instruction" in record and "output" in record:
+        return convert_alpaca
+    if "question" in record and "response" in record:
+        return convert_openorca
+    return None
+
+
+def convert_to_messages(record: dict, source: str) -> Optional[list[dict]]:
+    """Convert any supported record shape to normalised messages."""
+    converter = _detect_converter(record) or _CONVERTERS.get(source)
+
     if converter is None:
         return None
 
@@ -240,21 +300,45 @@ def is_factual_outlier(text: str) -> bool:
     return False
 
 
+_FR_STOPWORDS = {
+    "le", "la", "les", "un", "une", "des", "de", "du", "et", "est",
+    "sont", "pour", "avec", "sur", "dans", "que", "qui", "ne", "pas",
+    "je", "tu", "il", "elle", "nous", "vous", "ils", "elles", "ce",
+    "cette", "ces", "au", "aux", "en", "se", "sa", "son", "ses", "mais",
+    "ou", "où", "donc", "car", "être", "avoir", "fait", "plus", "comme",
+}
+
+_EN_STOPWORDS = {
+    "the", "a", "an", "is", "are", "was", "were", "to", "of", "in",
+    "for", "with", "on", "at", "from", "by", "and", "that", "this",
+    "it", "you", "we", "they", "be", "as", "or", "not", "have", "has",
+    "do", "does", "can", "will", "would", "should", "there", "their",
+}
+
+_WORD_RE = re.compile(r"[a-zA-ZÀ-ÖØ-öø-ÿ']+")
+
+
 def detect_language(text: str) -> str:
-    """Simple language detection (FR vs EN) based on common words."""
-    fr_words = {"le", "la", "les", "un", "une", "des", "de", "du", "à", "et", "en", "pour", "avec", "sur", "est", "sont"}
-    en_words = {"the", "a", "an", "is", "are", "to", "of", "in", "for", "with", "on", "at", "from", "by"}
+    """Detect FR vs EN with word-boundary stopword counts.
 
-    text_lower = text.lower()
-    fr_count = sum(1 for word in fr_words if word in text_lower)
-    en_count = sum(1 for word in en_words if word in text_lower)
+    The previous substring check (``"a" in text``) counted almost every
+    text as English; this uses whole words only.
+    """
+    words = [word.lower() for word in _WORD_RE.findall(text)]
 
-    if fr_count > en_count:
-        return "fr"
-    elif en_count > fr_count:
-        return "en"
-    else:
+    if not words:
         return "unknown"
+
+    fr_count = sum(1 for word in words if word in _FR_STOPWORDS)
+    en_count = sum(1 for word in words if word in _EN_STOPWORDS)
+
+    # Accented characters are a strong French signal.
+    if sum(1 for char in text if char in "àâäéèêëîïôöùûüçœ") >= 3:
+        fr_count += 2
+
+    if fr_count == en_count:
+        return "unknown"
+    return "fr" if fr_count > en_count else "en"
 
 
 # ---------------------------------------------------------------------------
@@ -389,6 +473,7 @@ def prepare_sft_v8(
     val_frac: float = 0.015,
     test_frac: float = 0.015,
     context_len: int = 512,
+    sources: Optional[List[str]] = None,
 ) -> dict:
     """Prepare SFT v8 dataset."""
 
@@ -406,8 +491,21 @@ def prepare_sft_v8(
     seen_hashes: set = set()
 
     # Scan raw files
-    raw_files = list(input_dir.glob("*.jsonl"))
-    print(f"Found {len(raw_files)} raw files")
+    raw_files = sorted(input_dir.glob("*.jsonl"))
+
+    if sources:
+        wanted = {name.strip() for name in sources if name.strip()}
+        unknown = wanted - {path.stem for path in raw_files}
+        if unknown:
+            raise FileNotFoundError(
+                f"Unknown source(s): {sorted(unknown)}"
+            )
+        raw_files = [path for path in raw_files if path.stem in wanted]
+
+    if not raw_files:
+        raise FileNotFoundError(f"No .jsonl source files found in {input_dir}")
+
+    print(f"Found {len(raw_files)} raw files: {[p.stem for p in raw_files]}")
 
     for raw_file in raw_files:
         source = raw_file.stem
@@ -458,13 +556,12 @@ def prepare_sft_v8(
                     messages = [{"role": m["role"], "content": m["content"], "lang": lang} for m in messages]
 
                     all_conversations.append((messages, source))
-                    stats.accepted += 1
 
                 except Exception as e:
                     stats.rejected += 1
                     stats.rejected_reasons[str(e)] += 1
 
-        print(f"{source}: examined={stats.examined}, accepted={stats.accepted}, rejected={stats.rejected}")
+        print(f"{source}: examined={stats.examined}, kept={stats.examined - stats.rejected}")
 
     print(f"\nTotal conversations before detailed filtering: {len(all_conversations)}")
 
@@ -473,9 +570,11 @@ def prepare_sft_v8(
     fr_count = 0
     en_count = 0
 
-    # First pass: measure n-gram distribution for calibration
+    # First pass: measure n-gram distribution for calibration.  Sample evenly
+    # across the whole corpus instead of only the alphabetically-first source.
+    sample_step = max(1, len(all_conversations) // 1000)
     ngram_ratios = []
-    for messages, source in all_conversations[:min(1000, len(all_conversations))]:
+    for messages, source in all_conversations[::sample_step]:
         response_text = messages[-1]["content"]
         ratio = compute_ngram_repetition_ratio(response_text, n=ngram_n)
         ngram_ratios.append(ratio)
@@ -550,49 +649,74 @@ def prepare_sft_v8(
         # Remove lang metadata before encoding
         clean_messages = [{"role": m["role"], "content": m["content"]} for m in messages]
         filtered_conversations.append((clean_messages, source, lang))
+        stats.accepted += 1
+
+    for source, stats in source_stats.items():
+        print(
+            f"{source}: accepted={stats.accepted}, "
+            f"rejected={stats.rejected}/{stats.examined}"
+        )
 
     print(f"\nAfter filtering: {len(filtered_conversations)} conversations")
     print(f"FR: {fr_count}, EN: {en_count}")
 
-    # Balance FR/EN
-    total_target = len(filtered_conversations)
-    target_fr = int(total_target * target_fr_ratio)
-    target_en = total_target - target_fr
-
+    # Balance FR/EN.  If one language is the limiting factor, cap the other
+    # side so the requested ratio is actually reached instead of silently
+    # letting the majority language dominate.
     fr_conversations = [m for m in filtered_conversations if m[2] == "fr"]
     en_conversations = [m for m in filtered_conversations if m[2] == "en"]
 
-    # Sample to target ratios
-    if len(fr_conversations) > target_fr:
-        import random
-        random.seed(42)
-        fr_conversations = random.sample(fr_conversations, target_fr)
-    if len(en_conversations) > target_en:
-        import random
-        random.seed(42)
-        en_conversations = random.sample(en_conversations, target_en)
+    import random
+    random.seed(42)
+
+    if target_fr_ratio >= 1.0:
+        en_target = 0
+    else:
+        en_target = int(len(fr_conversations) * (1.0 - target_fr_ratio) / target_fr_ratio)
+
+    if len(en_conversations) > en_target:
+        en_conversations = random.sample(en_conversations, en_target)
+
+    # Recompute the FR cap from the (possibly reduced) EN set so the ratio
+    # is preserved when both sides have spare data.
+    fr_target = (
+        len(filtered_conversations)
+        if target_fr_ratio <= 0.0
+        else int(len(en_conversations) * target_fr_ratio / (1.0 - target_fr_ratio))
+    )
+    if len(fr_conversations) > fr_target:
+        fr_conversations = random.sample(fr_conversations, fr_target)
 
     balanced_conversations = fr_conversations + en_conversations
+    random.shuffle(balanced_conversations)
     print(f"After balancing: {len(balanced_conversations)} (FR: {len(fr_conversations)}, EN: {len(en_conversations)})")
 
-    # Check if we have enough FR tokens
+    # Check how many FR tokens are actually available.
     total_fr_tokens = sum(
         len(tokenizer.encode(m[0][-1]["content"]))
         for m in fr_conversations
     )
     print(f"Total FR tokens: {total_fr_tokens:,}")
-
     if total_fr_tokens < 8_000_000:
-        print(f"WARNING: Only {total_fr_tokens:,} FR tokens (< 8M target)")
-        print("Options:")
-        print("1. Add FR datasets from Hugging Face (check license)")
-        print("2. Generate synthetic FR data via teacher model (code < 20%)")
-        print("3. Reduce FR ratio target")
+        print(
+            f"WARNING: only {total_fr_tokens:,} FR tokens (< 8M target); "
+            "proceeding with available data."
+        )
 
-    # Add refusal examples
+    # Add refusal examples.  Synthetic prompts must not leak into the eval set.
     refusal_count = int(len(balanced_conversations) * refusal_ratio)
-    refusal_examples = generate_refusal_examples(refusal_count)
-    in_scope_examples = generate_in_scope_examples(refusal_count)
+    refusal_examples = [
+        example
+        for example in generate_refusal_examples(refusal_count)
+        if hashlib.sha256(example[0]["content"].encode("utf-8")).hexdigest()
+        not in eval_hashes
+    ]
+    in_scope_examples = [
+        example
+        for example in generate_in_scope_examples(refusal_count)
+        if hashlib.sha256(example[0]["content"].encode("utf-8")).hexdigest()
+        not in eval_hashes
+    ]
 
     print(f"Adding {len(refusal_examples)} refusal examples")
     print(f"Adding {len(in_scope_examples)} in-scope control examples")
@@ -602,35 +726,24 @@ def prepare_sft_v8(
     for messages, source, lang in balanced_conversations:
         final_conversations.append((messages, source))
 
+    seen_final = set()
+    for messages, source in final_conversations:
+        seen_final.add(compute_content_hash(messages))
+
     for messages in refusal_examples:
-        final_conversations.append((messages, "synthetic_refusal"))
+        digest = compute_content_hash(messages)
+        if digest not in seen_final:
+            seen_final.add(digest)
+            final_conversations.append((messages, "synthetic_refusal"))
 
     for messages in in_scope_examples:
-        final_conversations.append((messages, "synthetic_in_scope"))
+        digest = compute_content_hash(messages)
+        if digest not in seen_final:
+            seen_final.add(digest)
+            final_conversations.append((messages, "synthetic_in_scope"))
 
     print(f"Total conversations for packing: {len(final_conversations)}")
 
-    # Check FR availability
-    if total_fr_tokens < 8_000_000:
-        print("\n" + "="*60)
-        print("INSUFFICIENT FRENCH DATA")
-        print("="*60)
-        print(f"Available FR tokens: {total_fr_tokens:,}")
-        print(f"Target FR tokens: 8,000,000")
-        print("\nOptions:")
-        print("1. Add FR datasets from Hugging Face:")
-        print("   - Recommended: 'lewtun/dolphin' (FR subset)")
-        print("   - Check license: permissive preferred")
-        print("   - Verify format: messages or convertible")
-        print("2. Generate via teacher model:")
-        print("   - Use strong model on FR prompts")
-        print("   - Ensure code < 20% of generated content")
-        print("3. Adjust target ratio to available data")
-        print("="*60)
-
-        # Ask user what to do
-        print("\nProceeding with available data for now...")
-        print("You can add more FR data later and re-run.")
 
     # Write conversations to temporary JSONL for packing
     temp_dir = output_dir.parent / f".{output_dir.name}.tmp"
@@ -695,7 +808,12 @@ def main():
     parser.add_argument("--tokenizer", required=True, help="Path to tokenizer.json")
     parser.add_argument("--output-dir", required=True, help="Output directory for packed data")
     parser.add_argument("--eval-prompts", default="data/eval/quality_prompts.jsonl", help="Path to eval prompts to exclude")
-    parser.add_argument("--max-docs", type=int, help="Limit number of documents for testing")
+    parser.add_argument("--max-docs", type=int, help="Limit number of documents per source for testing")
+    parser.add_argument(
+        "--sources",
+        default=None,
+        help="Comma-separated source stems to read (default: all *.jsonl)",
+    )
     parser.add_argument("--max-response-tokens", type=int, default=512, help="Max response tokens")
     parser.add_argument("--ngram-n", type=int, default=4, help="N-gram size for repetition detection")
     parser.add_argument("--ngram-threshold", type=float, default=0.1, help="Initial n-gram threshold (will be calibrated)")
@@ -721,6 +839,7 @@ def main():
         val_frac=args.val_frac,
         test_frac=args.test_frac,
         context_len=args.context_len,
+        sources=args.sources.split(",") if args.sources else None,
     )
 
     print("\n" + "="*60)
