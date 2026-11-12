@@ -1,4 +1,5 @@
 import argparse
+import time
 
 from tinyllm.sample import generate_ids, load_run_model
 
@@ -67,6 +68,11 @@ def main():
     parser.add_argument("--no-repeat-ngram-size", type=int, default=4)
     parser.add_argument("--max-tokens", type=int, default=120)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--no-speed",
+        action="store_true",
+        help="Ne pas afficher la vitesse de génération (tokens/s).",
+    )
     args = parser.parse_args()
 
     print("\nChargement de TinyLLM...")
@@ -119,6 +125,7 @@ def main():
             print("Contexte saturé. Utilise /reset.\n")
             continue
 
+        start = time.perf_counter()
         output_ids = generate_ids(
             model,
             prompt_ids,
@@ -134,10 +141,19 @@ def main():
             user_id=tokenizer.user_id,
             seed=args.seed + len(turns),
         )
+        elapsed = time.perf_counter() - start
 
         answer = tokenizer.decode(output_ids[len(prompt_ids):]).strip()
 
         print(f"\nTinyLLM > {answer}\n")
+
+        if not args.no_speed:
+            generated = len(output_ids) - len(prompt_ids)
+            tokens_per_second = generated / elapsed if elapsed > 0 else 0.0
+            print(
+                f"  [gen] {generated} tokens | {elapsed:.2f} s | "
+                f"{tokens_per_second:.1f} tok/s | prompt {len(prompt_ids)} tokens"
+            )
 
         turns.append({"role": "user", "content": user_input})
         turns.append({"role": "assistant", "content": answer})

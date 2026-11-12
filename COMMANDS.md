@@ -83,77 +83,113 @@ EOF
 
 ---
 
-## 2. Distillation avec Gemma-3:4B (Response-based)
+## 2. Distillation v5 → v6 (Response-based avec Teacher)
 
 ### Étape 1: Installer mlx-lm
 ```bash
 .venv/bin/pip install mlx-lm
 ```
 
-### Étape 2: Générer les réponses du teacher
+### Étape 2: Tester avec un teacher rapide (Qwen2.5-1.5B)
+
+Test avec 100 prompts pour vérifier la qualité :
+
 ```bash
-# WARNING: Cette commande est lourde (~2-4 heures pour 10k prompts)
-# Gemma-3:4B nécessite ~8-16 GB de RAM
 .venv/bin/python -m tinyllm.generate_teacher_responses \
-  --teacher-model google/gemma-3-4b-it \
-  --train-tokens data/sft/packed_v3/train.tokens.bin \
-  --train-mask data/sft/packed_v3/train.mask.bin \
+  --teacher-model Qwen/Qwen2.5-1.5B-Instruct \
+  --train-tokens data/sft/packed_v5/train.tokens.bin \
+  --train-mask data/sft/packed_v5/train.mask.bin \
   --tokenizer data/tokenizer.json \
-  --output data/sft/downloaded/raw/teacher_responses.jsonl \
-  --max-prompts 10000 \
+  --output data/sft/downloaded/raw/teacher_responses_test.jsonl \
+  --max-prompts 100 \
   --max-tokens 512 \
   --temperature 0.7
 ```
 
-### Étape 3: Combiner avec les données existantes
+Vérifier la qualité des réponses :
 ```bash
-# Ajouter les réponses du teacher aux données SFT existantes
-cat data/sft/downloaded/raw/teacher_responses.jsonl >> data/sft/downloaded/raw/combined.jsonl
+head -n 3 data/sft/downloaded/raw/teacher_responses_test.jsonl
 ```
 
-### Étape 4: Re-packer les données
-```bash
-# Supprimer l'ancien dossier packed s'il existe
-rm -rf data/sft/packed_v4
+### Étape 3: Générer 10,000 réponses du teacher (5-10 heures)
 
-# Re-packer avec les nouvelles données
-.venv/bin/python -m tinyllm.sft_data \
-  --input data/sft/downloaded/raw/combined.jsonl \
+Si le test est bon, lancer la génération complète :
+
+```bash
+nohup .venv/bin/python -m tinyllm.generate_teacher_responses \
+  --teacher-model Qwen/Qwen2.5-1.5B-Instruct \
+  --train-tokens data/sft/packed_v5/train.tokens.bin \
+  --train-mask data/sft/packed_v5/train.mask.bin \
   --tokenizer data/tokenizer.json \
-  --output-dir data/sft/packed_v4 \
+  --output data/sft/downloaded/raw/teacher_responses.jsonl \
+  --max-prompts 10000 \
+  --max-tokens 512 \
+  --temperature 0.7 \
+  > logs/teacher_generation.log 2>&1 &
+```
+
+Surveiller la génération :
+```bash
+tail -f logs/teacher_generation.log
+```
+
+### Étape 4: Combiner avec les données existantes
+
+Une fois la génération terminée :
+
+```bash
+# Créer le fichier combiné avec toutes les données
+cat data/sft/downloaded/raw/combined_all.jsonl > data/sft/downloaded/raw/combined_with_teacher.jsonl
+cat data/sft/downloaded/raw/teacher_responses.jsonl >> data/sft/downloaded/raw/combined_with_teacher.jsonl
+
+# Vérifier le nombre total
+wc -l data/sft/downloaded/raw/combined_with_teacher.jsonl
+```
+
+### Étape 5: Re-packer en v6
+
+```bash
+rm -rf data/sft/packed_v6
+
+.venv/bin/python -m tinyllm.sft_data \
+  --input data/sft/downloaded/raw/combined_with_teacher.jsonl \
+  --tokenizer data/tokenizer.json \
+  --output-dir data/sft/packed_v6 \
   --context-len 512
 ```
 
-### Étape 5: Entraîner avec les données augmentées
+### Étape 6: Entraîner le student (TinyLLM) sur les données distillées
+
 ```bash
 mkdir -p logs
 
 nohup .venv/bin/python -m tinyllm.sft_train \
   --base-config runs/phase1_tinystories/config.json \
   --base-checkpoint runs/phase1_tinystories/checkpoints/best \
-  --train-tokens data/sft/packed_v4/train.tokens.bin \
-  --train-mask data/sft/packed_v4/train.mask.bin \
-  --val-tokens data/sft/packed_v4/val.tokens.bin \
-  --val-mask data/sft/packed_v4/val.mask.bin \
-  --output-dir runs/sft_v4_teacher_responses \
+  --train-tokens data/sft/packed_v6/train.tokens.bin \
+  --train-mask data/sft/packed_v6/train.mask.bin \
+  --val-tokens data/sft/packed_v6/val.tokens.bin \
+  --val-mask data/sft/packed_v6/val.mask.bin \
+  --output-dir runs/sft_v6_distilled \
   --steps 3000 \
   --eval-interval 100 \
   --save-interval 500 \
   --replay-ratio 0 \
-  > logs/sft_v4_teacher_responses.log 2>&1 &
+  > logs/sft_v6_distilled.log 2>&1 &
 ```
 
-### Surveiller l'entraînement
+Surveiller l'entraînement :
 ```bash
-tail -f logs/sft_v4_teacher_responses.log
+tail -f logs/sft_v6_distilled.log
 ```
 
-### Étape 6: Évaluer le modèle distillé
+### Étape 7: Évaluer le modèle distillé
+
 ```bash
 # Créer le config.json
-cat > runs/sft_v4_teacher_responses/config.json << 'EOF'
+cat > runs/sft_v6_distilled/config.json << 'EOF'
 {
-  "run_name": "sft_v4_teacher_responses",
+  "run_name": "sft_v6_distilled",
   "output_dir": "runs",
   "model": {
     "vocab_size": 16384,
@@ -205,14 +241,44 @@ EOF
 .venv/bin/python -m tinyllm.sft_eval \
   --base-config runs/phase1_tinystories/config.json \
   --base-checkpoint runs/phase1_tinystories/checkpoints/best \
-  --sft-checkpoint runs/sft_v4_teacher_responses/checkpoints/best \
-  --test-tokens data/sft/packed_v4/test.tokens.bin \
-  --test-mask data/sft/packed_v4/test.mask.bin
+  --sft-checkpoint runs/sft_v6_distilled/checkpoints/best \
+  --test-tokens data/sft/packed_v6/test.tokens.bin \
+  --test-mask data/sft/packed_v6/test.mask.bin
 
-# Tester en chat
+# Tester en chat interactif
 .venv/bin/python -m tinyllm.chat \
-  --run-dir runs/sft_v4_teacher_responses \
+  --run-dir runs/sft_v6_distilled \
   --checkpoint best
+```
+
+### Alternatives de Teacher Models
+
+Si Qwen2.5-1.5B ne convient pas, essayer :
+
+**Qwen2.5-0.5B-Instruct** (plus rapide, 2-4 heures) :
+```bash
+.venv/bin/python -m tinyllm.generate_teacher_responses \
+  --teacher-model Qwen/Qwen2.5-0.5B-Instruct \
+  --train-tokens data/sft/packed_v5/train.tokens.bin \
+  --train-mask data/sft/packed_v5/train.mask.bin \
+  --tokenizer data/tokenizer.json \
+  --output data/sft/downloaded/raw/teacher_responses.jsonl \
+  --max-prompts 10000 \
+  --max-tokens 512 \
+  --temperature 0.7
+```
+
+**Gemma-2-2B-it** (plus lent, meilleure qualité, 10-20 heures) :
+```bash
+.venv/bin/python -m tinyllm.generate_teacher_responses \
+  --teacher-model google/gemma-2-2b-it \
+  --train-tokens data/sft/packed_v5/train.tokens.bin \
+  --train-mask data/sft/packed_v5/train.mask.bin \
+  --tokenizer data/tokenizer.json \
+  --output data/sft/downloaded/raw/teacher_responses.jsonl \
+  --max-prompts 10000 \
+  --max-tokens 512 \
+  --temperature 0.7
 ```
 
 ---
@@ -263,50 +329,22 @@ tail -20 logs/sft_v3_large.log | jq '.'
 
 ### Télécharger des datasets depuis HuggingFace
 ```bash
-# Dataset français général (conversations variées)
-.venv/bin/python -m tinyllm.download_sft \
-  --source huggingface \
-  --dataset "HuggingFaceH4/no_robots" \
-  --split train \
-  --max-examples 100000 \
-  --output data/sft/downloaded/raw/general_fr_v2.jsonl
+# Script principal pour télécharger des datasets variés
+.venv/bin/python download_sft_datasets.py \
+  --max-general-fr 100000 \
+  --max-coding-fr 50000 \
+  --include-ultrachat \
+  --ultrachat-limit 100000
+```
 
-# Dataset de code (Python, JavaScript, etc.)
-.venv/bin/python -m tinyllm.download_sft \
-  --source huggingface \
-  --dataset "bigcode/self-oss-instruct-sc2-exec-filter-50k" \
-  --split train \
-  --max-examples 50000 \
-  --output data/sft/downloaded/raw/code_v2.jsonl
-
-# Dataset mathématiques et raisonnement
-.venv/bin/python -m tinyllm.download_sft \
-  --source huggingface \
-  --dataset "meta-math/MetaMathQA" \
-  --split train \
-  --max-examples 50000 \
-  --output data/sft/downloaded/raw/math.jsonl
-
-# Dataset science (biologie, physique, chimie)
-.venv/bin/python -m tinyllm.download_sft \
-  --source huggingface \
-  --dataset "openbookqa" \
-  --split train \
-  --max-examples 30000 \
-  --output data/sft/downloaded/raw/science.jsonl
-
-# Dataset questions-réponses variées
-.venv/bin/python -m tinyllm.download_sft \
-  --source huggingface \
-  --dataset "Open-Orca/OpenOrca" \
-  --split train \
-  --max-examples 100000 \
-  --output data/sft/downloaded/raw/qa_varied.jsonl
+### Télécharger OpenOrca séparément (si nécessaire)
+```bash
+.venv/bin/python download_openorca.py
 ```
 
 ### Combiner tous les datasets téléchargés
 ```bash
-# Concaténer tous les fichiers JSONL
+# Concaténer tous les fichiers JSONL dans le dossier raw
 cat data/sft/downloaded/raw/*.jsonl > data/sft/downloaded/raw/combined_all.jsonl
 
 # Vérifier le nombre total de conversations
@@ -324,7 +362,7 @@ rm -rf data/sft/packed_v5
   --context-len 512
 ```
 
-### Lancer un nouvel entraînement avec données variées
+### Lancer un nouvel entraînement avec données variées (sans distillation)
 ```bash
 mkdir -p logs
 
@@ -335,25 +373,35 @@ nohup .venv/bin/python -m tinyllm.sft_train \
   --train-mask data/sft/packed_v5/train.mask.bin \
   --val-tokens data/sft/packed_v5/val.tokens.bin \
   --val-mask data/sft/packed_v5/val.mask.bin \
-  --output-dir runs/sft_v5_varied \
+  --output-dir runs/sft_v5_large \
   --steps 5000 \
   --eval-interval 100 \
   --save-interval 500 \
   --replay-ratio 0 \
-  > logs/sft_v5_varied.log 2>&1 &
+  > logs/sft_v5_large.log 2>&1 &
 ```
 
 ### Surveiller l'entraînement
 ```bash
-tail -f logs/sft_v5_varied.log
+tail -f logs/sft_v5_large.log
 ```
 
 ---
 
 ## Notes
 
-- Le modèle pèse ~161 MB (model.safetensors)
-- L'entraînement v3 devrait finir dans ~1.7 heures
-- La distillation avec Gemma-3:4B nécessite ~8-16 GB de RAM
-- Les commandes de distillation sont facultatives - tester d'abord le modèle v3
-- Pour varier les sujets, téléchargez différents datasets HuggingFace (code, math, science, etc.)
+- **Modèle TinyLLM** : 42M paramètres, ~161 MB (model.safetensors)
+- **v5 dataset** : 314,745 conversations, 193M tokens (3.3x plus que v3)
+- **Temps d'entraînement** : ~2-3 heures pour 3000-5000 steps (indépendant de la taille des données)
+- **Distillation** :
+  - Qwen2.5-1.5B : 5-10 heures pour 10k prompts (recommandé)
+  - Qwen2.5-0.5B : 2-4 heures pour 10k prompts (plus rapide)
+  - Gemma-2-2B : 10-20 heures pour 10k prompts (meilleure qualité)
+  - Gemma-3-4B : 25-50 heures pour 10k prompts (trop lent, déconseillé)
+- **Workflow recommandé** :
+  1. Tester Qwen2.5-1.5B avec 100 prompts
+  2. Si qualité OK, générer 10,000 réponses
+  3. Combiner avec v5, re-packer en v6
+  4. Entraîner TinyLLM student sur v6
+- **Alternative sans distillation** : Entraîner directement sur v5 (3.3x plus de données que v3)
+- **Pour varier les sujets** : Utilisez `download_sft_datasets.py` pour télécharger des datasets HuggingFace (français, code, math, science, etc.)

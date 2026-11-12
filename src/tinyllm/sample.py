@@ -1,10 +1,11 @@
 import argparse
+import json
 from pathlib import Path
 
 import mlx.core as mx
 import numpy as np
 
-from tinyllm.config import RunConfig, load_config
+from tinyllm.config import DataConfig, ModelConfig, RunConfig, load_config
 from tinyllm.model import TinyLM
 from tinyllm.tokenizer import TokenizerWrapper
 from tinyllm.decoding import (
@@ -148,11 +149,59 @@ def generate(
     )
 
 
+def run_config(run_dir: str | Path) -> RunConfig:
+    """Load a run config, falling back to an SFT run's ``sft_config.json``.
+
+    ``sft_train`` only writes ``sft_config.json`` (base paths + ``model_config``)
+    and does not copy ``config.json`` into its output directory, so chat and
+    sampling could not load an SFT run without a hand-written config.
+    """
+    run_dir = Path(run_dir)
+    config_path = run_dir / "config.json"
+
+    if config_path.is_file():
+        return load_config(config_path)
+
+    sft_path = run_dir / "sft_config.json"
+
+    if not sft_path.is_file():
+        raise FileNotFoundError(
+            f"no config.json or sft_config.json in {run_dir}"
+        )
+
+    record = json.loads(sft_path.read_text())
+    model_raw = record.get("model_config")
+
+    if not model_raw:
+        raise ValueError(f"{sft_path} does not contain 'model_config'")
+
+    data_raw: dict = {}
+    base_config = record.get("base_config")
+
+    if base_config and Path(base_config).is_file():
+        data_raw = json.loads(Path(base_config).read_text()).get("data", {})
+
+    data_raw.setdefault("tokenizer_path", "data/tokenizer.json")
+
+    return RunConfig(
+        run_name=run_dir.name,
+        output_dir=str(run_dir.parent),
+        model=ModelConfig(**model_raw),
+        data=DataConfig(
+            **{
+                key: value
+                for key, value in data_raw.items()
+                if key in DataConfig.__dataclass_fields__
+            }
+        ),
+    )
+
+
 def load_run_model(
     run_dir: str | Path, checkpoint: str = "latest"
 ) -> tuple[TinyLM, TokenizerWrapper, RunConfig]:
     run_dir = Path(run_dir)
-    cfg = load_config(run_dir / "config.json")
+    cfg = run_config(run_dir)
     model = TinyLM(cfg.model)
     checkpoint_path = run_dir / "checkpoints" / checkpoint / "model.safetensors"
     if not checkpoint_path.is_file():

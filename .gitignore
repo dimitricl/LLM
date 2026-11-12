@@ -8,3 +8,6 @@ data/
 .ruff_cache/
 *.safetensors
 *.bin
+.DS_Store
+nohup.out
+logs/*.log
