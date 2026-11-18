@@ -10,9 +10,13 @@ step() { echo "[$(date +%H:%M:%S)] $*"; }
 step "1/6 data"
 $PY scripts/build_tools_data.py --out data/sft/tools_v2/tools.jsonl --count 6000
 $PY scripts/reasoning_gen.py --out data/sft/reasoning_v1/reasoning.jsonl --count 3000
-$PY scripts/build_jarvis_v9.py --tokenizer data/v8/tokenizer.json \
-  --output-dir data/sft/packed_v9_jarvis2 --tools data/sft/tools_v2/tools.jsonl \
-  --tools-count 6000 --extra data/sft/reasoning_v1/reasoning.jsonl
+if [ -f data/sft/packed_v9_jarvis2/meta.json ]; then
+  echo "reusing existing data/sft/packed_v9_jarvis2 (delete it to rebuild)"
+else
+  $PY scripts/build_jarvis_v9.py --tokenizer data/v8/tokenizer.json \
+    --output-dir data/sft/packed_v9_jarvis2 --tools data/sft/tools_v2/tools.jsonl \
+    --tools-count 6000 --extra data/sft/reasoning_v1/reasoning.jsonl
+fi
 
 step "2/6 training (600 steps from anneal_a)"
 mkdir -p runs/sft_v9_jarvis2

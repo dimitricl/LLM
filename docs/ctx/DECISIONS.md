@@ -8,3 +8,4 @@
 - 2026-11-18: persona = Jarvis (objective, funny but serious) — user choice.
 - 2026-11-18: parent-model track compared on the neutral bench: LFM3-1.7B 4-bit 42/45 vs V9 ~12/45 — V9 not competitive on facts/calcul/reasoning.
 - 2026-11-18: V9 Jarvis annealing uses 500 steps (not 800) — previous anneal overfit at 4.5 epochs; stale identity/capability replies removed from reflex data.
+- 2026-11-18: keep Jarvis v2 as the from-scratch demo model but do not market its `<think>` as reasoning — 41/63 seen wording vs ~10 % reformulated.

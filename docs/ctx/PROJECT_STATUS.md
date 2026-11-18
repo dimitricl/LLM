@@ -21,6 +21,8 @@ Updated: 2026-11-18
 - V9 Jarvis (2026-11-18): `runs/sft_v9_jarvis` = 500-step annealing of `anneal_a` on persona + tools + short reflexes (`scripts/build_jarvis_v9.py`, data `data/sft/packed_v9_jarvis`, 36 min, val_loss 0.586 -> 0.450). Neutral bench 14/45 raw, **21/45 with tool runtime** (`bench_neutral.py --tools`; anneal_a 12/45); 21-case regression 16/21 (failures = old capability wording + 1 weather turn). Bundle `exports/tinyllm-v9-jarvis` (int8 + fp16 emb, 104 MB) with a tool-aware `server.py` (tested: calc, streaming, markup hidden, ~240-390 tok/s on Mac mini).
   - Known defects: argument copy errors (`45+12` -> `calc(45+11)`, `(12+8)*3` -> `calc(12+8)`), date text ignores the tool result (says 14 February when result is 2026-11-18). Fix idea: French-formatted date in `<result>`, more copy/parenthesis examples, retrain ~36 min.
 
+- V9 Jarvis v2 (`runs/sft_v9_jarvis2`, bundle `exports/tinyllm-v9-jarvis2`, details `docs/JARVIS_V9_V2.md`): date fixed, arithmetic copy 28/40 (v1 14/40), regression 18/21, neutral+tools 20/45 (v1 21). Programmatic `<think>`: 41/63 on seen wording but ~10 % on reformulations (templates, not reasoning).
+
 ## Next steps
 - Rebuild the mix: dedupe persona (~150 rows), <=10% persona, self-distilled replay (base model's own answers on general prompts), lower lr; retrain LFM3 for ~300 iters; re-run bench + multi-turn persona check.
 - Re-run neutral bench after fine-tuning; check Jarvis persona over multi-turn; check RAM < 2 GB at long context.
