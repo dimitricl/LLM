@@ -23,6 +23,8 @@ Updated: 2026-11-18
 
 - V9 Jarvis v2 (`runs/sft_v9_jarvis2`, bundle `exports/tinyllm-v9-jarvis2`, details `docs/JARVIS_V9_V2.md`): date fixed, arithmetic copy 28/40 (v1 14/40), regression 18/21, neutral+tools 20/45 (v1 21). Programmatic `<think>`: 41/63 on seen wording but ~10 % on reformulations (templates, not reasoning).
 
+- Cleanup done 2026-11-18: project folder 72 GB -> 7.2 GB. Kept: `runs/{pretrain_v9,sft_v9_anneal_a,sft_v9_jarvis2}/checkpoints/best` only, `data/v9/pretrain/tokenized` (3.8 GB), `data/v8/tokenizer.json`, small packed sets, `general_fr.jsonl` + seed, all `exports/`. Removed: V8 runs, sft_v9_conv, sft_v9_jarvis, raw/filtered corpora, downloaded SFT sets (re-downloadable via `scripts`). Backups in `~/backups/tinyllm/` (pretrain_v9, sft_v9_anneal_a, sft_v9_jarvis2 bests). Checkpoint CLI defaults now `best` (runs keep no `latest`).
+
 ## Next steps
 - Rebuild the mix: dedupe persona (~150 rows), <=10% persona, self-distilled replay (base model's own answers on general prompts), lower lr; retrain LFM3 for ~300 iters; re-run bench + multi-turn persona check.
 - Re-run neutral bench after fine-tuning; check Jarvis persona over multi-turn; check RAM < 2 GB at long context.

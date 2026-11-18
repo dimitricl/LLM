@@ -198,7 +198,7 @@ def run_config(run_dir: str | Path) -> RunConfig:
 
 
 def load_run_model(
-    run_dir: str | Path, checkpoint: str = "latest"
+    run_dir: str | Path, checkpoint: str = "best"
 ) -> tuple[TinyLM, TokenizerWrapper, RunConfig]:
     run_dir = Path(run_dir)
     cfg = run_config(run_dir)
@@ -213,7 +213,7 @@ def load_run_model(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dir", required=True)
-    parser.add_argument("--checkpoint", default="latest")
+    parser.add_argument("--checkpoint", default="best")
     parser.add_argument("--prompt", required=True)
     parser.add_argument("--max-tokens", type=int, default=200)
     parser.add_argument("--temperature", type=float, default=0.7)
