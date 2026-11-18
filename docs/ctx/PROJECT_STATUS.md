@@ -14,7 +14,11 @@ Updated: 2026-11-18
 - Tools: `src/tinyllm/tools.py` + `tool_runtime.py` (tested with a scripted model, not yet with a trained model).
 - Backup: `~/backups/tinyllm/pretrain_v9_best`. Tests: 233 pass, 1 fail (`max_hours`, pre-existing).
 
+- LoRA smoke tests (2026-11-18, adapters in `llm-eval/adapters/`, data mix `llm-eval/data/jarvis_mix`):
+  - LFM2.5-350M 8-bit via `mlx-lm lora` works (150 iters, lr 1e-4, 8 layers, ~5 min): persona learned but model degraded, bench 39 -> 10/45 (loops, identity reply leaks into unrelated answers). Likely causes [?]: 73% persona rows (near-duplicates), weak teacher replay, lr too high.
+  - LFM3-1.7B 4-bit via `python -m mlx_vlm.train` works on text-only JSONL (20 iters, lr 5e-5, ~230 tok/s, peak 3.8 GB); calc/facts preserved, identity not yet learned (undertrained). Not comparable 1:1 with the LFM2.5 run.
+
 ## Next steps
-- LoRA smoke test (few iterations) for persona on LFM2.5-350M (mlx-lm; LFM LoRA support unverified) and LFM3-1.7B (mlx-vlm train; text-only support unverified).
+- Rebuild the mix: dedupe persona (~150 rows), <=10% persona, self-distilled replay (base model's own answers on general prompts), lower lr; retrain LFM3 for ~300 iters; re-run bench + multi-turn persona check.
 - Re-run neutral bench after fine-tuning; check Jarvis persona over multi-turn; check RAM < 2 GB at long context.
 - V9 track (portfolio): annealing on persona+tools data from `anneal_a`, evaluate with bench.

@@ -62,7 +62,13 @@ class Generator:
     """Backend wrapper: ``generate(turns, prompt) -> str``."""
 
     def __init__(
-        self, backend: str, model_path: str, max_tokens: int, temperature: float, seed: int
+        self,
+        backend: str,
+        model_path: str,
+        max_tokens: int,
+        temperature: float,
+        seed: int,
+        adapter: str | None = None,
     ):
         self.backend, self.max_tokens, self.temperature, self.seed = (
             backend,
@@ -82,7 +88,7 @@ class Generator:
         elif backend == "mlx_lm":
             from mlx_lm import load
 
-            self.model, self.tok = load(model_path)
+            self.model, self.tok = load(model_path, adapter_path=adapter)
         elif backend == "mlx_vlm":
             from mlx_vlm import load
 
@@ -161,11 +167,14 @@ def main() -> None:
     parser.add_argument("--max-tokens", type=int, default=100)
     parser.add_argument("--temperature", type=float, default=0.3)
     parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--adapter", help="LoRA adapter dir (mlx_lm backend only)")
     parser.add_argument("--json-out", type=Path)
     parser.add_argument("--verbose", action="store_true", help="print every answer")
     args = parser.parse_args()
 
-    gen = Generator(args.backend, args.model, args.max_tokens, args.temperature, args.seed)
+    gen = Generator(
+        args.backend, args.model, args.max_tokens, args.temperature, args.seed, args.adapter
+    )
     results = []
     for case in CASES:
         start = time.perf_counter()
