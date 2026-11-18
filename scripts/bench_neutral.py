@@ -97,6 +97,8 @@ class Generator:
         else:
             raise ValueError(f"unknown backend {backend}")
 
+    tools = False
+
     def generate(self, turns: list[tuple[str, str]], prompt: str) -> str:
         if self.backend in ("tinyllm", "tinyllm_run"):
             from tinyllm.chat import build_prompt
@@ -104,6 +106,23 @@ class Generator:
 
             history = [{"role": r, "content": c} for r, c in turns]
             ids = build_prompt(history, prompt, self.tok, 512 - self.max_tokens)
+            if self.tools:
+                from tinyllm.tool_runtime import generate_with_tools
+                from tinyllm.tools import strip_tool_markup
+
+                gen_ids, _ = generate_with_tools(
+                    self.model,
+                    self.tok,
+                    ids,
+                    max_tokens=self.max_tokens,
+                    temperature=self.temperature,
+                    top_k=50,
+                    repetition_penalty=1.05,
+                    eos_id=self.tok.eos_id,
+                    user_id=self.tok.user_id,
+                    seed=self.seed,
+                )
+                return strip_tool_markup(self.tok.decode(gen_ids)).strip()
             out = generate_ids(
                 self.model,
                 ids,
@@ -167,6 +186,7 @@ def main() -> None:
     parser.add_argument("--max-tokens", type=int, default=100)
     parser.add_argument("--temperature", type=float, default=0.3)
     parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--tools", action="store_true", help="run <tool> calls (tinyllm backends)")
     parser.add_argument("--adapter", help="LoRA adapter dir (mlx_lm and mlx_vlm backends)")
     parser.add_argument("--json-out", type=Path)
     parser.add_argument("--verbose", action="store_true", help="print every answer")
@@ -175,6 +195,7 @@ def main() -> None:
     gen = Generator(
         args.backend, args.model, args.max_tokens, args.temperature, args.seed, args.adapter
     )
+    gen.tools = args.tools
     results = []
     for case in CASES:
         start = time.perf_counter()
