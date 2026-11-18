@@ -2,6 +2,7 @@
 
 Home-made model: 86.5 M parameters, pre-trained from scratch (2 B tokens), 512 tokens of context.
 Weights are attached to the GitHub Release `tinyllm-v9-models` (one `.tar.gz` per bundle).
+Full-precision `best` checkpoints (pretrain_v9, sft_v9_anneal_a, sft_v9_jarvis2) and the tokenizer are in the Release `tinyllm-v9-checkpoints` (1.5 GB, extract at the repo root with `tar -xzf`). The tokenized pretraining corpus is not published.
 Unpack one and run `./run.sh` (needs Python >= 3.11 and Apple Silicon; installs MLX locally).
 
 Neutral bench = `scripts/bench_neutral.py` (45 cases, one run, regex scoring). Detailed results:
