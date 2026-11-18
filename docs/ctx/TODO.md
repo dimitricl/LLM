@@ -1,9 +1,9 @@
 # TODO
-- [ ] Evaluate sft_v9_conv checkpoints (bench + probe); stop early if val_loss gain < 0.01 per 250 steps
+- [x] sft_v9_conv evaluated and stopped at step 3200 (plateau); best = step 3000
 - [x] Neutral bench (45 cases) in scripts/bench_cases.py; run it on all candidates
-- [ ] Review persona draft in configs/persona.json
+- [x] Persona Jarvis set in configs/persona.json
 - [ ] Measure loop_rate, OOV FR, refusals (plan go/no-go, docs/V9_PLAN.md section 4)
-- [ ] Build dataset v5 (ACK, PERSONAL_INFO, short identity) + 300-step annealing
+- [ ] Annealing of V9 on persona_v1 + tools_v1 (replaces the old v5 plan)
 - [ ] Add keywords `fiable`, `pas de quoi` to chat_regression
 - [ ] Update stale docs: DISTILLATION.md (42M), V9_PLAN.md checklist and 12 000 vs 6 000 steps
 - [ ] Fix test_train_config_has_max_hours (24.0 vs 48.0)

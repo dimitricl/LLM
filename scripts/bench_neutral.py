@@ -5,6 +5,7 @@
     .venv/bin/python scripts/bench_neutral.py --backend tinyllm \
         --model exports/tinyllm-v9-lite/tinyllm-v9
 
+    # TinyLLM run directory (full precision checkpoint): --model runs/x:best
     # LFM2.5 via mlx-lm, LFM3 via mlx-vlm (llm-eval venv)
     python scripts/bench_neutral.py --backend mlx_lm  --model <dir>
     python scripts/bench_neutral.py --backend mlx_vlm --model <dir>
@@ -73,6 +74,11 @@ class Generator:
             from tinyllm.quantize import load_model
 
             self.model, self.tok = load_model(model_path)
+        elif backend == "tinyllm_run":
+            from tinyllm.sample import load_run_model
+
+            run_dir, _, checkpoint = model_path.partition(":")
+            self.model, self.tok, _ = load_run_model(run_dir, checkpoint or "best")
         elif backend == "mlx_lm":
             from mlx_lm import load
 
@@ -86,7 +92,7 @@ class Generator:
             raise ValueError(f"unknown backend {backend}")
 
     def generate(self, turns: list[tuple[str, str]], prompt: str) -> str:
-        if self.backend == "tinyllm":
+        if self.backend in ("tinyllm", "tinyllm_run"):
             from tinyllm.chat import build_prompt
             from tinyllm.sample import generate_ids
 
@@ -148,7 +154,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--backend", required=True, choices=["tinyllm", "mlx_lm", "mlx_vlm"])
+    parser.add_argument(
+        "--backend", required=True, choices=["tinyllm", "tinyllm_run", "mlx_lm", "mlx_vlm"]
+    )
     parser.add_argument("--model", required=True)
     parser.add_argument("--max-tokens", type=int, default=100)
     parser.add_argument("--temperature", type=float, default=0.3)
