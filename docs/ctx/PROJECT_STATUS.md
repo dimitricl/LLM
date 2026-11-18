@@ -18,6 +18,7 @@ Updated: 2026-11-18
   - LFM2.5-350M 8-bit via `mlx-lm lora` works (150 iters, lr 1e-4, 8 layers, ~5 min): persona learned but model degraded, bench 39 -> 10/45 (loops, identity reply leaks into unrelated answers). Likely causes [?]: 73% persona rows (near-duplicates), weak teacher replay, lr too high.
   - LFM3-1.7B 4-bit via `python -m mlx_vlm.train` works on text-only JSONL (20 iters, lr 5e-5, ~230 tok/s, peak 3.8 GB); calc/facts preserved, identity not yet learned (undertrained). Not comparable 1:1 with the LFM2.5 run.
 
+- LFM3 + Jarvis LoRA v2 (branch `feat/jarvis-lfm3`, see docs/JARVIS_LFM3.md): neutral bench 41/45 (base 42), persona learned, 1006/1178 MB MLX active/peak.
 - V9 Jarvis (2026-11-18): `runs/sft_v9_jarvis` = 500-step annealing of `anneal_a` on persona + tools + short reflexes (`scripts/build_jarvis_v9.py`, data `data/sft/packed_v9_jarvis`, 36 min, val_loss 0.586 -> 0.450). Neutral bench 14/45 raw, **21/45 with tool runtime** (`bench_neutral.py --tools`; anneal_a 12/45); 21-case regression 16/21 (failures = old capability wording + 1 weather turn). Bundle `exports/tinyllm-v9-jarvis` (int8 + fp16 emb, 104 MB) with a tool-aware `server.py` (tested: calc, streaming, markup hidden, ~240-390 tok/s on Mac mini).
   - Known defects: argument copy errors (`45+12` -> `calc(45+11)`, `(12+8)*3` -> `calc(12+8)`), date text ignores the tool result (says 14 February when result is 2026-11-18). Fix idea: French-formatted date in `<result>`, more copy/parenthesis examples, retrain ~36 min.
 
@@ -26,6 +27,6 @@ Updated: 2026-11-18
 - Cleanup done 2026-11-18: project folder 72 GB -> 7.2 GB. Kept: `runs/{pretrain_v9,sft_v9_anneal_a,sft_v9_jarvis2}/checkpoints/best` only, `data/v9/pretrain/tokenized` (3.8 GB), `data/v8/tokenizer.json`, small packed sets, `general_fr.jsonl` + seed, all `exports/`. Removed: V8 runs, sft_v9_conv, sft_v9_jarvis, raw/filtered corpora, downloaded SFT sets (re-downloadable via `scripts`). Backups in `~/backups/tinyllm/` (pretrain_v9, sft_v9_anneal_a, sft_v9_jarvis2 bests). Checkpoint CLI defaults now `best` (runs keep no `latest`).
 
 ## Next steps
-- Rebuild the mix: dedupe persona (~150 rows), <=10% persona, self-distilled replay (base model's own answers on general prompts), lower lr; retrain LFM3 for ~300 iters; re-run bench + multi-turn persona check.
+- (done) Rebuild the mix: dedupe persona (~150 rows), <=10% persona, self-distilled replay (base model's own answers on general prompts), lower lr; retrain LFM3 for ~300 iters; re-run bench + multi-turn persona check.
 - Re-run neutral bench after fine-tuning; check Jarvis persona over multi-turn; check RAM < 2 GB at long context.
 - V9 track (portfolio): annealing on persona+tools data from `anneal_a`, evaluate with bench.
