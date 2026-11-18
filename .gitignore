@@ -4,6 +4,7 @@ __pycache__/
 runs/
 models/
 data/
+exports/
 .pytest_cache/
 .ruff_cache/
 *.safetensors

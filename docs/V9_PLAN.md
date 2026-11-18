@@ -75,6 +75,11 @@ avec les intermédiaires et les checkpoints.
 
 ## 3. Pipeline complet
 
+> **Validé le 2026-11-12** : l'architecture V9 tourne sur la machine.
+> Smoke test 20 steps sur les tokens v8 : **~4 000 tok/s**, pic mémoire **2,6 Go**,
+> aucune divergence. À ce débit, 1,97 Md de tokens = **~5,7 jours**.
+> Config prête dans `configs/pretrain_v9.json`.
+
 ### Étape 0 — Libérer de l'espace et figer le v8
 
 1. Exécuter le SFT v8 conversationnel et noter les métriques de référence
