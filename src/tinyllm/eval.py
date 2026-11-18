@@ -57,7 +57,7 @@ def main() -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dir", required=True)
-    parser.add_argument("--checkpoint", default="latest")
+    parser.add_argument("--checkpoint", default="best")
     parser.add_argument("--val-bin")
     parser.add_argument("--context-len", type=int)
     parser.add_argument("--batches", type=int)

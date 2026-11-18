@@ -56,8 +56,8 @@ def test_executes_calc_and_injects_result():
 
 def test_date_tool_uses_supplied_date():
     text, calls = run("<tool>date()</tool>x", today=date(2026, 11, 18))
-    assert calls[0]["result"] == "2026-11-18"
-    assert "<result>2026-11-18</result>" in text
+    assert calls[0]["result"] == "18 novembre 2026"
+    assert "<result>18 novembre 2026</result>" in text
 
 
 def test_no_tool_means_plain_generation():

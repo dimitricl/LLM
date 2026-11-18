@@ -11,3 +11,8 @@
 - [ ] Fine-tune V9 on data/sft/tools_v1 (+ runtime that stops at </tool>, runs src/tinyllm/tools.py, injects <result>)
 - [ ] LoRA persona test on LFM2.5-350M (mlx-lm) and LFM3-1.7B (mlx-vlm; LoRA support unverified)
 - [ ] Read LFM Open License v1.0 before renaming/redistributing
+- [x] V9 Jarvis v2 done (date fixed, copy 14->28/40; thinking does not generalize)
+- [ ] Measure real RAM/speed of exports/tinyllm-v9-jarvis on the MacBook Air
+- [ ] Port tool-aware streaming loop to scripts/serve.py (only the bundle server has it)
+- [ ] Runtime check: compare the model's final number with the tool result (copy errors)
+- [ ] Test exports/tinyllm-v9-jarvis2 on the MacBook Air (RAM, speed, persona over several turns)

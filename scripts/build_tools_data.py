@@ -19,7 +19,7 @@ from pathlib import Path
 
 from tinyllm.tools import run_tool
 
-MONTHS = [
+_UNUSED_MONTHS = [
     "janvier",
     "février",
     "mars",
@@ -98,8 +98,33 @@ def date_row(rng: random.Random) -> dict:
     q = rng.choice(
         ["Quelle date sommes-nous ?", "On est quel jour ?", "Quelle est la date d'aujourd'hui ?"]
     )
-    pretty = f"{today.day} {MONTHS[today.month - 1]} {today.year}"
-    answer = f"{call('', today, 'date')}Nous sommes le {pretty}."
+    result = run_tool("date", "", today)
+    answer = f"{call('', today, 'date')}Nous sommes le {result}."
+    return {"messages": [{"role": "user", "content": q}, {"role": "assistant", "content": answer}]}
+
+
+def copy_row(rng: random.Random) -> dict:
+    """Expressions that stress faithful copying: big numbers, chains, parentheses."""
+    kind = rng.choice(["big_add", "chain", "paren", "paren2"])
+    a, b, c = rng.randint(10, 999), rng.randint(10, 999), rng.randint(2, 9)
+    if kind == "big_add":
+        q = rng.choice([f"Calcule {a} + {b}.", f"Combien font {a} + {b} ?", f"{a} plus {b} ?"])
+        expr, text = f"{a}+{b}", f"{a} + {b} font"
+    elif kind == "chain":
+        d = rng.randint(2, 99)
+        q = f"Calcule {a} + {d} - {c}."
+        expr, text = f"{a}+{d}-{c}", f"{a} + {d} - {c} font"
+    elif kind == "paren":
+        a, b = rng.randint(2, 40), rng.randint(2, 40)
+        q = rng.choice([f"Combien font ({a} + {b}) * {c} ?", f"Calcule ({a} + {b}) x {c}."])
+        expr, text = f"({a}+{b})*{c}", f"({a} + {b}) x {c} font"
+    else:
+        a, b = rng.randint(2, 40), rng.randint(2, 40)
+        q = f"Combien font {c} * ({a} - {b}) ?" if a > b else f"Combien font {c} * ({b} - {a}) ?"
+        hi, lo = max(a, b), min(a, b)
+        expr, text = f"{c}*({hi}-{lo})", f"{c} x ({hi} - {lo}) font"
+    result = run_tool("calc", expr)
+    answer = f"{call(expr)}{text} {result}."
     return {"messages": [{"role": "user", "content": q}, {"role": "assistant", "content": answer}]}
 
 
@@ -108,8 +133,10 @@ def build(count: int, seed: int) -> list[dict]:
     rows = []
     for _ in range(count):
         roll = rng.random()
-        if roll < 0.65:
+        if roll < 0.40:
             rows.append(math_row(rng))
+        elif roll < 0.62:
+            rows.append(copy_row(rng))
         elif roll < 0.75:
             rows.append(date_row(rng))
         else:

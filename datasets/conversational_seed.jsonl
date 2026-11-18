@@ -1,0 +1,153 @@
+{"messages": [{"role": "user", "content": "Bonjour"}, {"role": "assistant", "content": "Bonjour ! Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "Bonjour"}, {"role": "assistant", "content": "Salut ! Que puis-je faire pour vous ?"}]}
+{"messages": [{"role": "user", "content": "Bonjour"}, {"role": "assistant", "content": "Bonjour ! Comment allez-vous ?"}]}
+{"messages": [{"role": "user", "content": "Salut"}, {"role": "assistant", "content": "Bonjour ! Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "Salut"}, {"role": "assistant", "content": "Salut ! Que puis-je faire pour vous ?"}]}
+{"messages": [{"role": "user", "content": "Salut"}, {"role": "assistant", "content": "Bonjour ! Comment allez-vous ?"}]}
+{"messages": [{"role": "user", "content": "Bonjour !"}, {"role": "assistant", "content": "Bonjour ! Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "Bonjour !"}, {"role": "assistant", "content": "Salut ! Que puis-je faire pour vous ?"}]}
+{"messages": [{"role": "user", "content": "Bonjour !"}, {"role": "assistant", "content": "Bonjour ! Comment allez-vous ?"}]}
+{"messages": [{"role": "user", "content": "Salut !"}, {"role": "assistant", "content": "Bonjour ! Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "Salut !"}, {"role": "assistant", "content": "Salut ! Que puis-je faire pour vous ?"}]}
+{"messages": [{"role": "user", "content": "Salut !"}, {"role": "assistant", "content": "Bonjour ! Comment allez-vous ?"}]}
+{"messages": [{"role": "user", "content": "Bonsoir"}, {"role": "assistant", "content": "Bonjour ! Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "Bonsoir"}, {"role": "assistant", "content": "Salut ! Que puis-je faire pour vous ?"}]}
+{"messages": [{"role": "user", "content": "Bonsoir"}, {"role": "assistant", "content": "Bonjour ! Comment allez-vous ?"}]}
+{"messages": [{"role": "user", "content": "Coucou"}, {"role": "assistant", "content": "Bonjour ! Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "Coucou"}, {"role": "assistant", "content": "Salut ! Que puis-je faire pour vous ?"}]}
+{"messages": [{"role": "user", "content": "Coucou"}, {"role": "assistant", "content": "Bonjour ! Comment allez-vous ?"}]}
+{"messages": [{"role": "user", "content": "Yo"}, {"role": "assistant", "content": "Bonjour ! Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "Yo"}, {"role": "assistant", "content": "Salut ! Que puis-je faire pour vous ?"}]}
+{"messages": [{"role": "user", "content": "Yo"}, {"role": "assistant", "content": "Bonjour ! Comment allez-vous ?"}]}
+{"messages": [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "Hello! How can I help you?"}]}
+{"messages": [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "Hi! What can I do for you?"}]}
+{"messages": [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "Hello! How are you?"}]}
+{"messages": [{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "Hello! How can I help you?"}]}
+{"messages": [{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "Hi! What can I do for you?"}]}
+{"messages": [{"role": "user", "content": "Hi"}, {"role": "assistant", "content": "Hello! How are you?"}]}
+{"messages": [{"role": "user", "content": "Hey"}, {"role": "assistant", "content": "Hello! How can I help you?"}]}
+{"messages": [{"role": "user", "content": "Hey"}, {"role": "assistant", "content": "Hi! What can I do for you?"}]}
+{"messages": [{"role": "user", "content": "Hey"}, {"role": "assistant", "content": "Hello! How are you?"}]}
+{"messages": [{"role": "user", "content": "Good morning"}, {"role": "assistant", "content": "Hello! How can I help you?"}]}
+{"messages": [{"role": "user", "content": "Good morning"}, {"role": "assistant", "content": "Hi! What can I do for you?"}]}
+{"messages": [{"role": "user", "content": "Good morning"}, {"role": "assistant", "content": "Hello! How are you?"}]}
+{"messages": [{"role": "user", "content": "Good evening"}, {"role": "assistant", "content": "Hello! How can I help you?"}]}
+{"messages": [{"role": "user", "content": "Good evening"}, {"role": "assistant", "content": "Hi! What can I do for you?"}]}
+{"messages": [{"role": "user", "content": "Good evening"}, {"role": "assistant", "content": "Hello! How are you?"}]}
+{"messages": [{"role": "user", "content": "Comment ça va ?"}, {"role": "assistant", "content": "Je vais bien, merci ! Et vous ?"}]}
+{"messages": [{"role": "user", "content": "Comment ça va ?"}, {"role": "assistant", "content": "Très bien, merci. Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "Ça va ?"}, {"role": "assistant", "content": "Je vais bien, merci ! Et vous ?"}]}
+{"messages": [{"role": "user", "content": "Ça va ?"}, {"role": "assistant", "content": "Très bien, merci. Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "Comment vas-tu ?"}, {"role": "assistant", "content": "Je vais bien, merci ! Et vous ?"}]}
+{"messages": [{"role": "user", "content": "Comment vas-tu ?"}, {"role": "assistant", "content": "Très bien, merci. Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "Tu vas bien ?"}, {"role": "assistant", "content": "Je vais bien, merci ! Et vous ?"}]}
+{"messages": [{"role": "user", "content": "Tu vas bien ?"}, {"role": "assistant", "content": "Très bien, merci. Comment puis-je vous aider ?"}]}
+{"messages": [{"role": "user", "content": "How are you?"}, {"role": "assistant", "content": "I'm doing well, thanks! How can I help you?"}]}
+{"messages": [{"role": "user", "content": "How are you?"}, {"role": "assistant", "content": "I'm fine, thank you. What can I do for you?"}]}
+{"messages": [{"role": "user", "content": "How is it going?"}, {"role": "assistant", "content": "I'm doing well, thanks! How can I help you?"}]}
+{"messages": [{"role": "user", "content": "How is it going?"}, {"role": "assistant", "content": "I'm fine, thank you. What can I do for you?"}]}
+{"messages": [{"role": "user", "content": "Merci"}, {"role": "assistant", "content": "Avec plaisir !"}]}
+{"messages": [{"role": "user", "content": "Merci"}, {"role": "assistant", "content": "Je vous en prie."}]}
+{"messages": [{"role": "user", "content": "Merci"}, {"role": "assistant", "content": "De rien, n'hésitez pas si vous avez d'autres questions."}]}
+{"messages": [{"role": "user", "content": "Merci beaucoup"}, {"role": "assistant", "content": "Avec plaisir !"}]}
+{"messages": [{"role": "user", "content": "Merci beaucoup"}, {"role": "assistant", "content": "Je vous en prie."}]}
+{"messages": [{"role": "user", "content": "Merci beaucoup"}, {"role": "assistant", "content": "De rien, n'hésitez pas si vous avez d'autres questions."}]}
+{"messages": [{"role": "user", "content": "Merci pour ton aide"}, {"role": "assistant", "content": "Avec plaisir !"}]}
+{"messages": [{"role": "user", "content": "Merci pour ton aide"}, {"role": "assistant", "content": "Je vous en prie."}]}
+{"messages": [{"role": "user", "content": "Merci pour ton aide"}, {"role": "assistant", "content": "De rien, n'hésitez pas si vous avez d'autres questions."}]}
+{"messages": [{"role": "user", "content": "Thanks"}, {"role": "assistant", "content": "You're welcome!"}]}
+{"messages": [{"role": "user", "content": "Thanks"}, {"role": "assistant", "content": "Happy to help."}]}
+{"messages": [{"role": "user", "content": "Thanks"}, {"role": "assistant", "content": "No problem at all."}]}
+{"messages": [{"role": "user", "content": "Thank you"}, {"role": "assistant", "content": "You're welcome!"}]}
+{"messages": [{"role": "user", "content": "Thank you"}, {"role": "assistant", "content": "Happy to help."}]}
+{"messages": [{"role": "user", "content": "Thank you"}, {"role": "assistant", "content": "No problem at all."}]}
+{"messages": [{"role": "user", "content": "Thank you very much"}, {"role": "assistant", "content": "You're welcome!"}]}
+{"messages": [{"role": "user", "content": "Thank you very much"}, {"role": "assistant", "content": "Happy to help."}]}
+{"messages": [{"role": "user", "content": "Thank you very much"}, {"role": "assistant", "content": "No problem at all."}]}
+{"messages": [{"role": "user", "content": "Au revoir"}, {"role": "assistant", "content": "Au revoir !"}]}
+{"messages": [{"role": "user", "content": "Au revoir"}, {"role": "assistant", "content": "À bientôt !"}]}
+{"messages": [{"role": "user", "content": "Au revoir"}, {"role": "assistant", "content": "Bonne journée !"}]}
+{"messages": [{"role": "user", "content": "À bientôt"}, {"role": "assistant", "content": "Au revoir !"}]}
+{"messages": [{"role": "user", "content": "À bientôt"}, {"role": "assistant", "content": "À bientôt !"}]}
+{"messages": [{"role": "user", "content": "À bientôt"}, {"role": "assistant", "content": "Bonne journée !"}]}
+{"messages": [{"role": "user", "content": "Bonne journée"}, {"role": "assistant", "content": "Au revoir !"}]}
+{"messages": [{"role": "user", "content": "Bonne journée"}, {"role": "assistant", "content": "À bientôt !"}]}
+{"messages": [{"role": "user", "content": "Bonne journée"}, {"role": "assistant", "content": "Bonne journée !"}]}
+{"messages": [{"role": "user", "content": "Goodbye"}, {"role": "assistant", "content": "Goodbye!"}]}
+{"messages": [{"role": "user", "content": "Goodbye"}, {"role": "assistant", "content": "See you!"}]}
+{"messages": [{"role": "user", "content": "Goodbye"}, {"role": "assistant", "content": "Have a nice day!"}]}
+{"messages": [{"role": "user", "content": "Bye"}, {"role": "assistant", "content": "Goodbye!"}]}
+{"messages": [{"role": "user", "content": "Bye"}, {"role": "assistant", "content": "See you!"}]}
+{"messages": [{"role": "user", "content": "Bye"}, {"role": "assistant", "content": "Have a nice day!"}]}
+{"messages": [{"role": "user", "content": "See you"}, {"role": "assistant", "content": "Goodbye!"}]}
+{"messages": [{"role": "user", "content": "See you"}, {"role": "assistant", "content": "See you!"}]}
+{"messages": [{"role": "user", "content": "See you"}, {"role": "assistant", "content": "Have a nice day!"}]}
+{"messages": [{"role": "user", "content": "Qui es-tu ?"}, {"role": "assistant", "content": "Je suis TinyLLM, un petit assistant conversationnel."}]}
+{"messages": [{"role": "user", "content": "Qui es-tu ?"}, {"role": "assistant", "content": "Je suis un assistant conçu pour discuter et répondre à des questions simples."}]}
+{"messages": [{"role": "user", "content": "Qui êtes-vous ?"}, {"role": "assistant", "content": "Je suis TinyLLM, un petit assistant conversationnel."}]}
+{"messages": [{"role": "user", "content": "Qui êtes-vous ?"}, {"role": "assistant", "content": "Je suis un assistant conçu pour discuter et répondre à des questions simples."}]}
+{"messages": [{"role": "user", "content": "Tu es quoi ?"}, {"role": "assistant", "content": "Je suis TinyLLM, un petit assistant conversationnel."}]}
+{"messages": [{"role": "user", "content": "Tu es quoi ?"}, {"role": "assistant", "content": "Je suis un assistant conçu pour discuter et répondre à des questions simples."}]}
+{"messages": [{"role": "user", "content": "Présente-toi"}, {"role": "assistant", "content": "Je suis TinyLLM, un petit assistant conversationnel."}]}
+{"messages": [{"role": "user", "content": "Présente-toi"}, {"role": "assistant", "content": "Je suis un assistant conçu pour discuter et répondre à des questions simples."}]}
+{"messages": [{"role": "user", "content": "Who are you?"}, {"role": "assistant", "content": "I am TinyLLM, a small conversational assistant."}]}
+{"messages": [{"role": "user", "content": "Who are you?"}, {"role": "assistant", "content": "I am an assistant designed to answer simple questions."}]}
+{"messages": [{"role": "user", "content": "What are you?"}, {"role": "assistant", "content": "I am TinyLLM, a small conversational assistant."}]}
+{"messages": [{"role": "user", "content": "What are you?"}, {"role": "assistant", "content": "I am an assistant designed to answer simple questions."}]}
+{"messages": [{"role": "user", "content": "Que peux-tu faire ?"}, {"role": "assistant", "content": "Je peux discuter avec vous, répondre à des questions simples et vous aider sur des tâches courtes."}]}
+{"messages": [{"role": "user", "content": "Que peux-tu faire ?"}, {"role": "assistant", "content": "Je peux tenir une conversation et répondre à des questions simples."}]}
+{"messages": [{"role": "user", "content": "Tu sers à quoi ?"}, {"role": "assistant", "content": "Je peux discuter avec vous, répondre à des questions simples et vous aider sur des tâches courtes."}]}
+{"messages": [{"role": "user", "content": "Tu sers à quoi ?"}, {"role": "assistant", "content": "Je peux tenir une conversation et répondre à des questions simples."}]}
+{"messages": [{"role": "user", "content": "Aide-moi"}, {"role": "assistant", "content": "Je peux discuter avec vous, répondre à des questions simples et vous aider sur des tâches courtes."}]}
+{"messages": [{"role": "user", "content": "Aide-moi"}, {"role": "assistant", "content": "Je peux tenir une conversation et répondre à des questions simples."}]}
+{"messages": [{"role": "user", "content": "What can you do?"}, {"role": "assistant", "content": "I can chat with you, answer simple questions, and help with short tasks."}]}
+{"messages": [{"role": "user", "content": "What can you do?"}, {"role": "assistant", "content": "I can have a conversation and answer simple questions."}]}
+{"messages": [{"role": "user", "content": "How can you help me?"}, {"role": "assistant", "content": "I can chat with you, answer simple questions, and help with short tasks."}]}
+{"messages": [{"role": "user", "content": "How can you help me?"}, {"role": "assistant", "content": "I can have a conversation and answer simple questions."}]}
+{"messages": [{"role": "user", "content": "Tu parles français ?"}, {"role": "assistant", "content": "Oui, je parle français et anglais."}]}
+{"messages": [{"role": "user", "content": "Tu parles français ?"}, {"role": "assistant", "content": "Oui, je comprends le français."}]}
+{"messages": [{"role": "user", "content": "Est-ce que tu comprends le français ?"}, {"role": "assistant", "content": "Oui, je parle français et anglais."}]}
+{"messages": [{"role": "user", "content": "Est-ce que tu comprends le français ?"}, {"role": "assistant", "content": "Oui, je comprends le français."}]}
+{"messages": [{"role": "user", "content": "Do you speak English?"}, {"role": "assistant", "content": "Yes, I speak English and French."}]}
+{"messages": [{"role": "user", "content": "Do you speak English?"}, {"role": "assistant", "content": "Yes, I can speak both English and French."}]}
+{"messages": [{"role": "user", "content": "Can you speak French?"}, {"role": "assistant", "content": "Yes, I speak English and French."}]}
+{"messages": [{"role": "user", "content": "Can you speak French?"}, {"role": "assistant", "content": "Yes, I can speak both English and French."}]}
+{"messages": [{"role": "user", "content": "Quelle est la capitale de l'Italie ?"}, {"role": "assistant", "content": "La capitale de l'Italie est Rome."}]}
+{"messages": [{"role": "user", "content": "Quelle est la capitale de l'Italie ?"}, {"role": "assistant", "content": "La capitale de l'Espagne est Madrid."}]}
+{"messages": [{"role": "user", "content": "Quelle est la capitale de l'Espagne ?"}, {"role": "assistant", "content": "La capitale de l'Italie est Rome."}]}
+{"messages": [{"role": "user", "content": "Quelle est la capitale de l'Espagne ?"}, {"role": "assistant", "content": "La capitale de l'Espagne est Madrid."}]}
+{"messages": [{"role": "user", "content": "What is the capital of Italy?"}, {"role": "assistant", "content": "The capital of Italy is Rome."}]}
+{"messages": [{"role": "user", "content": "What is the capital of Italy?"}, {"role": "assistant", "content": "The capital of Spain is Madrid."}]}
+{"messages": [{"role": "user", "content": "What is the capital of Spain?"}, {"role": "assistant", "content": "The capital of Italy is Rome."}]}
+{"messages": [{"role": "user", "content": "What is the capital of Spain?"}, {"role": "assistant", "content": "The capital of Spain is Madrid."}]}
+{"messages": [{"role": "user", "content": "Combien font 2 + 2 ?"}, {"role": "assistant", "content": "2 + 2 = 4."}]}
+{"messages": [{"role": "user", "content": "Combien font 2 + 2 ?"}, {"role": "assistant", "content": "3 + 4 = 7."}]}
+{"messages": [{"role": "user", "content": "Combien font 2 + 2 ?"}, {"role": "assistant", "content": "10 - 6 = 4."}]}
+{"messages": [{"role": "user", "content": "Combien font 3 + 4 ?"}, {"role": "assistant", "content": "2 + 2 = 4."}]}
+{"messages": [{"role": "user", "content": "Combien font 3 + 4 ?"}, {"role": "assistant", "content": "3 + 4 = 7."}]}
+{"messages": [{"role": "user", "content": "Combien font 3 + 4 ?"}, {"role": "assistant", "content": "10 - 6 = 4."}]}
+{"messages": [{"role": "user", "content": "Combien font 10 - 6 ?"}, {"role": "assistant", "content": "2 + 2 = 4."}]}
+{"messages": [{"role": "user", "content": "Combien font 10 - 6 ?"}, {"role": "assistant", "content": "3 + 4 = 7."}]}
+{"messages": [{"role": "user", "content": "Combien font 10 - 6 ?"}, {"role": "assistant", "content": "10 - 6 = 4."}]}
+{"messages": [{"role": "user", "content": "What is 2 + 2?"}, {"role": "assistant", "content": "2 + 2 = 4."}]}
+{"messages": [{"role": "user", "content": "What is 2 + 2?"}, {"role": "assistant", "content": "3 + 4 = 7."}]}
+{"messages": [{"role": "user", "content": "What is 3 + 4?"}, {"role": "assistant", "content": "2 + 2 = 4."}]}
+{"messages": [{"role": "user", "content": "What is 3 + 4?"}, {"role": "assistant", "content": "3 + 4 = 7."}]}
+{"messages": [{"role": "user", "content": "Je n'ai pas compris"}, {"role": "assistant", "content": "Bien sûr. Pouvez-vous reformuler votre question ?"}]}
+{"messages": [{"role": "user", "content": "Je n'ai pas compris"}, {"role": "assistant", "content": "Je reformule : pouvez-vous préciser votre demande ?"}]}
+{"messages": [{"role": "user", "content": "Peux-tu répéter ?"}, {"role": "assistant", "content": "Bien sûr. Pouvez-vous reformuler votre question ?"}]}
+{"messages": [{"role": "user", "content": "Peux-tu répéter ?"}, {"role": "assistant", "content": "Je reformule : pouvez-vous préciser votre demande ?"}]}
+{"messages": [{"role": "user", "content": "Comment ?"}, {"role": "assistant", "content": "Bien sûr. Pouvez-vous reformuler votre question ?"}]}
+{"messages": [{"role": "user", "content": "Comment ?"}, {"role": "assistant", "content": "Je reformule : pouvez-vous préciser votre demande ?"}]}
+{"messages": [{"role": "user", "content": "I don't understand"}, {"role": "assistant", "content": "Of course. Could you rephrase your question?"}]}
+{"messages": [{"role": "user", "content": "I don't understand"}, {"role": "assistant", "content": "Sure, could you clarify what you mean?"}]}
+{"messages": [{"role": "user", "content": "Can you repeat?"}, {"role": "assistant", "content": "Of course. Could you rephrase your question?"}]}
+{"messages": [{"role": "user", "content": "Can you repeat?"}, {"role": "assistant", "content": "Sure, could you clarify what you mean?"}]}
+{"messages": [{"role": "user", "content": "Qui a gagné le match d'hier ?"}, {"role": "assistant", "content": "Je ne sais pas."}]}
+{"messages": [{"role": "user", "content": "Qui a gagné le match d'hier ?"}, {"role": "assistant", "content": "Je ne peux pas répondre à cette question de façon fiable."}]}
+{"messages": [{"role": "user", "content": "Quelle est la météo à Tokyo maintenant ?"}, {"role": "assistant", "content": "Je ne sais pas."}]}
+{"messages": [{"role": "user", "content": "Quelle est la météo à Tokyo maintenant ?"}, {"role": "assistant", "content": "Je ne peux pas répondre à cette question de façon fiable."}]}
+{"messages": [{"role": "user", "content": "Who won the match yesterday?"}, {"role": "assistant", "content": "I don't know."}]}
+{"messages": [{"role": "user", "content": "Who won the match yesterday?"}, {"role": "assistant", "content": "I can't answer that reliably."}]}
+{"messages": [{"role": "user", "content": "What is the weather in Tokyo right now?"}, {"role": "assistant", "content": "I don't know."}]}
+{"messages": [{"role": "user", "content": "What is the weather in Tokyo right now?"}, {"role": "assistant", "content": "I can't answer that reliably."}]}
