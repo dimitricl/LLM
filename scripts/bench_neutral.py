@@ -6,7 +6,7 @@
         --model exports/tinyllm-v9-lite/tinyllm-v9
 
     # TinyLLM run directory (full precision checkpoint): --model runs/x:best
-    # LFM2.5 via mlx-lm, LFM3 via mlx-vlm (llm-eval venv)
+    # LFM2.5 via mlx-lm, LFM3 via mlx-vlm (separate venv with mlx-vlm >= 0.7.11)
     python scripts/bench_neutral.py --backend mlx_lm  --model <dir>
     python scripts/bench_neutral.py --backend mlx_vlm --model <dir>
 

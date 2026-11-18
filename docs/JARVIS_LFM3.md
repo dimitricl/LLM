@@ -29,4 +29,4 @@ Persona learned (identity stable over multi-turn, refuses live info). Only new f
 - Humor is not learned (persona data has fixed replies only); jokes are generic.
 - Language flake (Spanish) on one prompt, present in the base model too.
 - Not yet measured on the MacBook Air: speed and real RAM at long context.
-- Adapters and venv live outside the repo (`/Volumes/Lexar/Projects/llm-eval/`).
+- The adapters, venv and models were outside the repo and were deleted on 2026-11-18 (track abandoned); rebuild them with this recipe if needed.

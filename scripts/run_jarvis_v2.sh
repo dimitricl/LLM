@@ -4,7 +4,8 @@
 set -e
 cd "$(dirname "$0")/.."
 PY=.venv/bin/python
-R=/Volumes/Lexar/Projects/llm-eval/results
+R=${EVAL_RESULTS:-/tmp/tinyllm-eval-results}  # the old llm-eval folder was deleted
+mkdir -p "$R"
 step() { echo "[$(date +%H:%M:%S)] $*"; }
 
 step "1/6 data"

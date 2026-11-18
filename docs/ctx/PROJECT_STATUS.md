@@ -5,16 +5,16 @@ Updated: 2026-11-18
 - Branch `feat/tinyllm-v9`. Published 2026-11-18 on github.com/dimitricl/LLM (public): branches feat/tinyllm-v9, feat/jarvis-lfm3, feat/tinyllm-v8 pushed; 8 model bundles as assets of release `tinyllm-v9-models` (files > 100 MB cannot go through git; git-lfs not installed); small synthetic datasets in `datasets/`; index in `MODELS.md`. Nothing merged into main yet.
 - V9: 86.5 M params, pretrain done (val_loss 3.1587, 1.97 B tokens). Kept as the home-made reference / portfolio model.
 - `runs/sft_v9_conv` STOPPED by decision at step 3200 (best = step 3000, val_loss 2.2228; gains had fallen to ~0.004 per 250 steps). Resumable with `--resume`.
-- Neutral bench (45 cases, `scripts/bench_neutral.py`, one run, regex scoring, results in `/Volumes/Lexar/Projects/llm-eval/results/`):
+- Neutral bench (45 cases, `scripts/bench_neutral.py`, one run, regex scoring, result files deleted with the eval folder on 2026-11-18):
   LFM3-1.7B 4-bit 42/45 | LFM2.5-350M 8-bit 39 | 230M 8-bit 35 | 350M 4-bit 33 | V9 anneal_a 12 | V9 lite 12 | V9 conv(best) 11 | V9 tiny 9.
 - V9 conv (best): long generic answers, loses short conversational reflexes (conversation 1/6 vs 6/6 for anneal_a); its few "faits" passes are lucky regex hits on wrong text.
 - Memory (MLX active/peak): V9 lite 108/175 MB; LFM2.5-230M 244/369; 350M-4bit 222/371; 350M-8bit 399/570; LFM3-1.7B-4bit 973/1113. RSS is unreliable on macOS.
-- LFM3 loads only via `mlx-vlm` (no `mlx-lm` support yet). Env: `/Volumes/Lexar/Projects/llm-eval/` (venv + models, outside repo). LFM license: free under $10M revenue; derivatives stay under the license; attribution clause unverified.
+- LFM3 loads only via `mlx-vlm` (no `mlx-lm` support yet). Env: separate venv + models, deleted 2026-11-18 (track abandoned). LFM license: free under $10M revenue; derivatives stay under the license; attribution clause unverified.
 - Persona chosen: Jarvis, objective and funny but serious (`configs/persona.json`); data in `data/sft/{persona_v1,tools_v1}` (git-ignored).
 - Tools: `src/tinyllm/tools.py` + `tool_runtime.py` (tested with a scripted model, not yet with a trained model).
 - Backup: `~/backups/tinyllm/pretrain_v9_best`. Tests: 233 pass, 1 fail (`max_hours`, pre-existing).
 
-- LoRA smoke tests (2026-11-18, adapters in `llm-eval/adapters/`, data mix `llm-eval/data/jarvis_mix`):
+- LoRA smoke tests (2026-11-18, adapters and data mix deleted 2026-11-18):
   - LFM2.5-350M 8-bit via `mlx-lm lora` works (150 iters, lr 1e-4, 8 layers, ~5 min): persona learned but model degraded, bench 39 -> 10/45 (loops, identity reply leaks into unrelated answers). Likely causes [?]: 73% persona rows (near-duplicates), weak teacher replay, lr too high.
   - LFM3-1.7B 4-bit via `python -m mlx_vlm.train` works on text-only JSONL (20 iters, lr 5e-5, ~230 tok/s, peak 3.8 GB); calc/facts preserved, identity not yet learned (undertrained). Not comparable 1:1 with the LFM2.5 run.
 
