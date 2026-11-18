@@ -35,3 +35,9 @@ python scripts/serve.py --model-dir exports/tinyllm-v9-int8 --port 8080
 
 Reproduction commands for pre-training, SFT and evaluation are in
 `docs/V9_RESULTS.md` (section 5). Older commands: `COMMANDS.md` (V3-era).
+
+## Models and data
+
+- Model bundles (8 versions of V9, int8/int4, with and without tools): see `MODELS.md`
+  (weights are published as GitHub Release assets, files are too big for git).
+- Small synthetic datasets: `datasets/`.
