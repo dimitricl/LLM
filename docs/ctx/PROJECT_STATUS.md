@@ -2,7 +2,7 @@
 Updated: 2026-11-18
 
 ## Current state
-- Branch `feat/tinyllm-v9`; work committed locally, not pushed.
+- Branch `feat/tinyllm-v9`. Published 2026-11-18 on github.com/dimitricl/LLM (public): branches feat/tinyllm-v9, feat/jarvis-lfm3, feat/tinyllm-v8 pushed; 8 model bundles as assets of release `tinyllm-v9-models` (files > 100 MB cannot go through git; git-lfs not installed); small synthetic datasets in `datasets/`; index in `MODELS.md`. Nothing merged into main yet.
 - V9: 86.5 M params, pretrain done (val_loss 3.1587, 1.97 B tokens). Kept as the home-made reference / portfolio model.
 - `runs/sft_v9_conv` STOPPED by decision at step 3200 (best = step 3000, val_loss 2.2228; gains had fallen to ~0.004 per 250 steps). Resumable with `--resume`.
 - Neutral bench (45 cases, `scripts/bench_neutral.py`, one run, regex scoring, results in `/Volumes/Lexar/Projects/llm-eval/results/`):
