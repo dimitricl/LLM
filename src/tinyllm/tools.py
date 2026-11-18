@@ -73,3 +73,25 @@ def parse_tool_call(text: str) -> tuple[str, str] | None:
     """Return ``(name, args)`` of the first ``<tool>`` call in ``text``, if any."""
     match = TOOL_CALL.search(text)
     return (match.group(1), match.group(2)) if match else None
+
+
+_BLOCK = re.compile(r"<tool>.*?</tool>|<result>.*?</result>", re.DOTALL)
+_OPENERS = ("<tool>", "<result>")
+
+
+def strip_tool_markup(text: str) -> str:
+    """Remove tool-call markup from text, safe to call on a partial (streamed) text.
+
+    Complete ``<tool>..</tool>`` / ``<result>..</result>`` blocks are removed, an unclosed
+    block is cut from its opener, and a tail that could still become an opener is held back.
+    """
+    text = _BLOCK.sub("", text)
+    for opener in _OPENERS:
+        index = text.rfind(opener)
+        if index != -1:
+            text = text[:index]
+    for opener in _OPENERS:
+        for length in range(len(opener) - 1, 0, -1):
+            if text.endswith(opener[:length]):
+                return text[:-length]
+    return text

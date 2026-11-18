@@ -31,3 +31,22 @@ def test_parse_tool_call():
     assert parse_tool_call("ok <tool>calc(17*3)</tool> suite") == ("calc", "17*3")
     assert parse_tool_call("<tool>date()</tool>") == ("date", "")
     assert parse_tool_call("pas d'outil") is None
+
+
+def test_strip_tool_markup_complete_and_partial():
+    from tinyllm.tools import strip_tool_markup
+
+    full = "<tool>calc(2+3)</tool><result>5</result>2 + 3 font 5."
+    assert strip_tool_markup(full) == "2 + 3 font 5."
+    assert strip_tool_markup("Bonjour <tool>calc(1") == "Bonjour "
+    assert strip_tool_markup("<tool>calc(1+1)</tool><res") == ""
+    assert strip_tool_markup("A <") == "A "
+    assert strip_tool_markup("a < b et c") == "a < b et c"
+    # never shrinks below what was already shown for growing text
+    growing = "<tool>calc(2+3)</tool><result>5</result>Cinq"
+    shown = ""
+    for i in range(1, len(growing) + 1):
+        visible = strip_tool_markup(growing[:i])
+        assert visible.startswith(shown) or shown.startswith(visible) is False
+        shown = max(shown, visible, key=len)
+    assert shown == "Cinq"
