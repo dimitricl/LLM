@@ -59,6 +59,7 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--persona", type=Path, default=Path("data/sft/persona_v1/persona.jsonl"))
     parser.add_argument("--tools", type=Path, default=Path("data/sft/tools_v1/tools.jsonl"))
+    parser.add_argument("--extra", type=Path, nargs="*", default=[], help="more messages JSONL")
     parser.add_argument("--persona-repeat", type=int, default=2)
     parser.add_argument("--tools-count", type=int, default=4000)
     parser.add_argument("--replay-count", type=int, default=400)
@@ -86,11 +87,12 @@ def main() -> None:
     )
     persona = persona_unique * args.persona_repeat
     tools = load_rows(args.tools)[: args.tools_count]
-    conversations = kept + persona + tools
+    extra = [row for path in args.extra for row in load_rows(path)]
+    conversations = kept + persona + tools + extra
     rng.shuffle(conversations)
     print(
         f"mix: reflexes {len(kept)} | persona {len(persona)} | tools {len(tools)} "
-        f"| total {len(conversations)}"
+        f"| extra {len(extra)} | total {len(conversations)}"
     )
 
     staging = args.output_dir.parent / f".{args.output_dir.name}.src"

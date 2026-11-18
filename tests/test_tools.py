@@ -23,7 +23,7 @@ def test_run_tool_formats_and_handles_errors():
     assert run_tool("calc", "10/4") == "2.5"
     assert run_tool("calc", "6/3") == "2"
     assert run_tool("calc", "1/0").startswith("erreur")
-    assert run_tool("date", "", today=date(2026, 11, 18)) == "2026-11-18"
+    assert run_tool("date", "", today=date(2026, 11, 18)) == "18 novembre 2026"
     assert run_tool("shell", "ls").startswith("erreur")
 
 
@@ -50,3 +50,12 @@ def test_strip_tool_markup_complete_and_partial():
         assert visible.startswith(shown) or shown.startswith(visible) is False
         shown = max(shown, visible, key=len)
     assert shown == "Cinq"
+
+
+def test_strip_think_blocks():
+    from tinyllm.tools import strip_tool_markup
+
+    text = "<think>On ajoute 4. <tool>calc(15+4)</tool><result>19</result></think>19."
+    assert strip_tool_markup(text) == "19."
+    assert strip_tool_markup("<think>en cours <tool>calc(1+1)</tool><result>2</result>") == ""
+    assert strip_tool_markup("Oui <thi") == "Oui "

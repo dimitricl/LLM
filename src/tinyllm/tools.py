@@ -12,6 +12,10 @@ import operator
 import re
 from datetime import date
 
+MONTHS = [
+    "janvier", "février", "mars", "avril", "mai", "juin",
+    "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+]  # fmt: skip
 TOOL_CALL = re.compile(r"<tool>\s*(\w+)\((.*?)\)\s*</tool>", re.DOTALL)
 
 _BINARY = {
@@ -63,7 +67,8 @@ def run_tool(name: str, args: str, today: date | None = None) -> str:
         if name == "calc":
             return format_number(safe_calc(args))
         if name == "date":
-            return (today or date.today()).isoformat()
+            day = today or date.today()
+            return f"{day.day} {MONTHS[day.month - 1]} {day.year}"
     except (ValueError, SyntaxError, ZeroDivisionError, OverflowError) as exc:
         return f"erreur: {exc}"
     return f"erreur: outil inconnu ({name})"
@@ -75,8 +80,8 @@ def parse_tool_call(text: str) -> tuple[str, str] | None:
     return (match.group(1), match.group(2)) if match else None
 
 
-_BLOCK = re.compile(r"<tool>.*?</tool>|<result>.*?</result>", re.DOTALL)
-_OPENERS = ("<tool>", "<result>")
+_BLOCK = re.compile(r"<think>.*?</think>|<tool>.*?</tool>|<result>.*?</result>", re.DOTALL)
+_OPENERS = ("<think>", "<tool>", "<result>")
 
 
 def strip_tool_markup(text: str) -> str:
