@@ -1,9 +1,13 @@
 # TODO
 - [ ] Evaluate sft_v9_conv checkpoints (bench + probe); stop early if val_loss gain < 0.01 per 250 steps
-- [ ] Widen chat_regression bench (21 cases is saturated)
+- [x] Neutral bench (45 cases) in scripts/bench_cases.py; run it on all candidates
+- [ ] Review persona draft in configs/persona.json
 - [ ] Measure loop_rate, OOV FR, refusals (plan go/no-go, docs/V9_PLAN.md section 4)
 - [ ] Build dataset v5 (ACK, PERSONAL_INFO, short identity) + 300-step annealing
 - [ ] Add keywords `fiable`, `pas de quoi` to chat_regression
 - [ ] Update stale docs: DISTILLATION.md (42M), V9_PLAN.md checklist and 12 000 vs 6 000 steps
 - [ ] Fix test_train_config_has_max_hours (24.0 vs 48.0)
 - [ ] Decide: keep V9 or V8 after full metric comparison
+- [ ] Fine-tune V9 on data/sft/tools_v1 (+ runtime that stops at </tool>, runs src/tinyllm/tools.py, injects <result>)
+- [ ] LoRA persona test on LFM2.5-350M (mlx-lm) and LFM3-1.7B (mlx-vlm; LoRA support unverified)
+- [ ] Read LFM Open License v1.0 before renaming/redistributing
