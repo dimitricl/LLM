@@ -92,7 +92,7 @@ class Generator:
         elif backend == "mlx_vlm":
             from mlx_vlm import load
 
-            self.model, self.proc = load(model_path)
+            self.model, self.proc = load(model_path, adapter_path=adapter)
             self.tok = getattr(self.proc, "tokenizer", self.proc)
         else:
             raise ValueError(f"unknown backend {backend}")
@@ -167,7 +167,7 @@ def main() -> None:
     parser.add_argument("--max-tokens", type=int, default=100)
     parser.add_argument("--temperature", type=float, default=0.3)
     parser.add_argument("--seed", type=int, default=1)
-    parser.add_argument("--adapter", help="LoRA adapter dir (mlx_lm backend only)")
+    parser.add_argument("--adapter", help="LoRA adapter dir (mlx_lm and mlx_vlm backends)")
     parser.add_argument("--json-out", type=Path)
     parser.add_argument("--verbose", action="store_true", help="print every answer")
     args = parser.parse_args()
