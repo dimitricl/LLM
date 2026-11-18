@@ -58,7 +58,7 @@ def test_persona_dataset_uses_one_canonical_identity_reply():
         m["content"]
         for r in rows
         for m in r["messages"]
-        if m["role"] == "assistant" and "TinyLLM" in m["content"]
+        if m["role"] == "assistant" and persona["name"] in m["content"]
     }
     assert identity_replies == {persona["identity_reply"]}
     assert all(r["messages"][0]["role"] == "user" for r in rows)
