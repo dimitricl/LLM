@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Volumes/Lexar/Projects/LLM/src/tinyllm/sft_train.py", line 636, in <module>
+    main()
+  File "/Volumes/Lexar/Projects/LLM/src/tinyllm/sft_train.py", line 632, in main
+    print(json.dumps(train(args), indent=2), flush=True)
+                     ^^^^^^^^^^^
+  File "/Volumes/Lexar/Projects/LLM/src/tinyllm/sft_train.py", line 277, in train
+    raise FileExistsError(
+FileExistsError: /Volumes/Lexar/Projects/LLM/runs/sft_v1/checkpoints already contains checkpoints. Use --resume or choose another output directory.

@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+runs/
+models/
+data/
+exports/
+.pytest_cache/
+.ruff_cache/
+*.safetensors
+*.bin
+.DS_Store
+nohup.out
+logs/*.log

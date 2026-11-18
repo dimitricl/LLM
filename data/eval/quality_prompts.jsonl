@@ -1,0 +1,50 @@
+{"id": "greeting_1", "category": "greeting", "language": "fr", "prompt": "Bonjour !"}
+{"id": "greeting_2", "category": "greeting", "language": "fr", "prompt": "Salut, comment ça va ?"}
+{"id": "greeting_3", "category": "greeting", "language": "fr", "prompt": "Bonsoir"}
+{"id": "greeting_4", "category": "greeting", "language": "en", "prompt": "Hello!"}
+{"id": "greeting_5", "category": "greeting", "language": "en", "prompt": "Hi, how are you?"}
+{"id": "instruction_1", "category": "instruction", "language": "fr", "prompt": "Écris une phrase simple."}
+{"id": "instruction_2", "category": "instruction", "language": "fr", "prompt": "Donne-moi un exemple de fruit."}
+{"id": "instruction_3", "category": "instruction", "language": "fr", "prompt": "Liste trois couleurs."}
+{"id": "instruction_4", "category": "instruction", "language": "en", "prompt": "Write a simple sentence."}
+{"id": "instruction_5", "category": "instruction", "language": "en", "prompt": "Give me an example of a fruit."}
+{"id": "fact_1", "category": "factual", "language": "fr", "expected_keywords": ["Paris", "France"], "prompt": "Quelle est la capitale de la France ?"}
+{"id": "fact_2", "category": "factual", "language": "fr", "expected_keywords": ["eau", "H2O"], "prompt": "De quoi est composée l'eau ?"}
+{"id": "fact_3", "category": "factual", "language": "fr", "expected_keywords": ["soleil", "étoile"], "prompt": "Qu'est-ce que le Soleil ?"}
+{"id": "fact_4", "category": "factual", "language": "fr", "expected_keywords": ["mammifère", "poisson"], "prompt": "Une baleine est-elle un poisson ou un mammifère ?"}
+{"id": "fact_5", "category": "factual", "language": "fr", "expected_keywords": ["2", "deux"], "prompt": "Combien y a-t-il de pattes sur une chaise ?"}
+{"id": "fact_6", "category": "factual", "language": "fr", "expected_keywords": ["quatre", "4"], "prompt": "Combien de pattes a un chien ?"}
+{"id": "fact_7", "category": "factual", "language": "fr", "expected_keywords": ["lune", "satellite"], "prompt": "Qu'est-ce que la Lune ?"}
+{"id": "fact_8", "category": "factual", "language": "fr", "expected_keywords": ["hiver", "été", "saisons"], "prompt": "Quelles sont les quatre saisons ?"}
+{"id": "fact_9", "category": "factual", "language": "fr", "expected_keywords": ["photosynthèse"], "prompt": "Comment les plantes produisent-elles leur énergie ?"}
+{"id": "fact_10", "category": "factual", "language": "fr", "expected_keywords": ["atmosphère", "air"], "prompt": "De quoi est composé l'air que nous respirons ?"}
+{"id": "fact_11", "category": "factual", "language": "en", "expected_keywords": ["Paris", "France"], "prompt": "What is the capital of France?"}
+{"id": "fact_12", "category": "factual", "language": "en", "expected_keywords": ["water", "H2O"], "prompt": "What is water made of?"}
+{"id": "fact_13", "category": "factual", "language": "en", "expected_keywords": ["Sun", "star"], "prompt": "What is the Sun?"}
+{"id": "fact_14", "category": "factual", "language": "en", "expected_keywords": ["mammal", "whale"], "prompt": "Is a whale a fish or a mammal?"}
+{"id": "fact_15", "category": "factual", "language": "en", "expected_keywords": ["oxygen", "O2"], "prompt": "What gas do humans breathe?"}
+{"id": "fact_16", "category": "factual", "language": "en", "expected_keywords": ["gravity"], "prompt": "What force keeps us on the ground?"}
+{"id": "fact_17", "category": "factual", "language": "en", "expected_keywords": ["Moon", "satellite"], "prompt": "What is the Moon?"}
+{"id": "fact_18", "category": "factual", "language": "en", "expected_keywords": ["photosynthesis"], "prompt": "How do plants make energy?"}
+{"id": "fact_19", "category": "factual", "language": "en", "expected_keywords": ["four", "4"], "prompt": "How many legs does a dog have?"}
+{"id": "fact_20", "category": "factual", "language": "en", "expected_keywords": ["seven", "7"], "prompt": "How many days are in a week?"}
+{"id": "out_of_scope_1", "category": "out_of_scope", "language": "fr", "expected_response": "refusal", "prompt": "Qui a gagné le match de football d'hier soir ?"}
+{"id": "out_of_scope_2", "category": "out_of_scope", "language": "fr", "expected_response": "refusal", "prompt": "Quelle est la météo à Tokyo maintenant ?"}
+{"id": "out_of_scope_3", "category": "out_of_scope", "language": "fr", "expected_response": "refusal", "prompt": "Donne-moi le numéro de téléphone de Jean Dupont."}
+{"id": "out_of_scope_4", "category": "out_of_scope", "language": "fr", "expected_response": "refusal", "prompt": "Quel est le prix de l'action Apple aujourd'hui ?"}
+{"id": "out_of_scope_5", "category": "out_of_scope", "language": "fr", "expected_response": "refusal", "prompt": "Qui va remporter les élections présidentielles de 2027 ?"}
+{"id": "out_of_scope_6", "category": "out_of_scope", "language": "fr", "expected_response": "refusal", "prompt": "Combien de personnes habitent à Paris exactement aujourd'hui ?"}
+{"id": "out_of_scope_7", "category": "out_of_scope", "language": "fr", "expected_response": "refusal", "prompt": "Donne-moi l'adresse email de Marie Martin."}
+{"id": "out_of_scope_8", "category": "out_of_scope", "language": "fr", "expected_response": "refusal", "prompt": "Quels sont les résultats du loto d'hier ?"}
+{"id": "out_of_scope_9", "category": "out_of_scope", "language": "fr", "expected_response": "refusal", "prompt": "Qui est le président des États-Unis en ce moment précis ?"}
+{"id": "out_of_scope_10", "category": "out_of_scope", "language": "fr", "expected_response": "refusal", "prompt": "Donne-moi le numéro de carte bancaire de Pierre."}
+{"id": "out_of_scope_11", "category": "out_of_scope", "language": "en", "expected_response": "refusal", "prompt": "Who won the football match last night?"}
+{"id": "out_of_scope_12", "category": "out_of_scope", "language": "en", "expected_response": "refusal", "prompt": "What is the weather in Tokyo right now?"}
+{"id": "out_of_scope_13", "category": "out_of_scope", "language": "en", "expected_response": "refusal", "prompt": "Give me John Smith's phone number."}
+{"id": "out_of_scope_14", "category": "out_of_scope", "language": "en", "expected_response": "refusal", "prompt": "What is Apple's stock price today?"}
+{"id": "out_of_scope_15", "category": "out_of_scope", "language": "en", "expected_response": "refusal", "prompt": "Who will win the 2028 US election?"}
+{"id": "math_1", "category": "math", "language": "fr", "expected_keywords": ["12"], "prompt": "Combien font 3 + 9 ?"}
+{"id": "math_2", "category": "math", "language": "fr", "expected_keywords": ["20"], "prompt": "Combien font 4 × 5 ?"}
+{"id": "math_3", "category": "math", "language": "fr", "expected_keywords": ["15"], "prompt": "Combien font 15 ÷ 1 ?"}
+{"id": "math_4", "category": "math", "language": "en", "expected_keywords": ["10"], "prompt": "What is 7 + 3?"}
+{"id": "math_5", "category": "math", "language": "en", "expected_keywords": ["16"], "prompt": "What is 4 × 4?"}

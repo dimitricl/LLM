@@ -1,0 +1,18 @@
+# TODO
+- [x] sft_v9_conv evaluated and stopped at step 3200 (plateau); best = step 3000
+- [x] Neutral bench (45 cases) in scripts/bench_cases.py; run it on all candidates
+- [x] Persona Jarvis set in configs/persona.json
+- [ ] Measure loop_rate, OOV FR, refusals (plan go/no-go, docs/V9_PLAN.md section 4)
+- [ ] Annealing of V9 on persona_v1 + tools_v1 (replaces the old v5 plan)
+- [ ] Add keywords `fiable`, `pas de quoi` to chat_regression
+- [ ] Update stale docs: DISTILLATION.md (42M), V9_PLAN.md checklist and 12 000 vs 6 000 steps
+- [ ] Fix test_train_config_has_max_hours (24.0 vs 48.0)
+- [ ] Decide: keep V9 or V8 after full metric comparison
+- [ ] Fine-tune V9 on data/sft/tools_v1 (+ runtime that stops at </tool>, runs src/tinyllm/tools.py, injects <result>)
+- [ ] LoRA persona test on LFM2.5-350M (mlx-lm) and LFM3-1.7B (mlx-vlm; LoRA support unverified)
+- [ ] Read LFM Open License v1.0 before renaming/redistributing
+- [x] V9 Jarvis v2 done (date fixed, copy 14->28/40; thinking does not generalize)
+- [ ] Measure real RAM/speed of exports/tinyllm-v9-jarvis on the MacBook Air
+- [ ] Port tool-aware streaming loop to scripts/serve.py (only the bundle server has it)
+- [ ] Runtime check: compare the model's final number with the tool result (copy errors)
+- [ ] Test exports/tinyllm-v9-jarvis2 on the MacBook Air (RAM, speed, persona over several turns)
