@@ -1,8 +1,8 @@
 # V9 — Résultats
 
-> Statut : pré-entraînement terminé, SFT d'annealing terminé et évalué,
-> SFT conversationnel complet en cours (`runs/sft_v9_conv`).
-> Dernière mise à jour : 18 novembre 2026.
+> Statut : **terminé** (18 novembre 2026). Pré-entraînement, SFT conversationnel (arrêté
+> sur plateau), annealing, version Jarvis avec outils (v1 et v2) : voir la section 8.
+> Le modèle maison a atteint la limite de cette configuration (86 M de paramètres, 2 Md de tokens).
 
 ## 1. Configuration
 
@@ -139,12 +139,46 @@ python scripts/general_probe.py --run-dir runs/sft_v9_anneal_a
 | `data/sft/packed_v8_conv` | corpus conversationnel complet (305 Mo, 201 k séq.) |
 | `data/v9/pretrain/tokenized/train.bin` | corpus de pré-entraînement (replay) |
 
-## 7. Suite
+## 7. Suite (historique)
 
-1. SFT conversationnel complet (`runs/sft_v9_conv`, 6 000 steps), puis une
-   passe d'annealing de 300 steps sur un dataset patché « v5 ».
-2. Dataset v5 : pools `ACK` (accusés de réception qui relancent) et
-   `PERSONAL_INFO` (questions sur l'utilisateur), identité courte sans chiffre.
-3. Compléter les mots-clés de `chat_regression.py` (`fiable`, `pas de quoi`).
-4. Export : `src/tinyllm/quantize.py` pour l'int8/int4 MLX ; un export GGUF
-   demanderait un convertisseur dédié (architecture `TinyLM` non supportée).
+Le plan initial prévoyait un SFT conversationnel complet puis un annealing « v5 ». Réalisé
+autrement : le SFT conv a été arrêté au step 3200 (plateau, 11/45 au banc neutre, perte des
+réflexes courts) ; l'annealing final est `sft_v9_jarvis2` (section 8).
+
+## 8. Bilan final (18 novembre 2026)
+
+### Chaîne réalisée
+Pré-entraînement V9 (30 000 steps, val_loss 3,1587) -> `sft_v9_anneal_a` -> `sft_v9_jarvis`
+(persona Jarvis + outils) -> **`sft_v9_jarvis2`** (outils corrigés + `<think>` programmatique,
+600 steps, val_loss 0,457 -> 0,293). Détails : `docs/JARVIS_V9_V2.md`.
+
+### Banc neutre (45 cas, `scripts/bench_neutral.py`, un tirage)
+| Modèle | Score |
+|---|---|
+| V9 `anneal_a` | 12 |
+| V9 conv (step 3000) | 11 |
+| V9 lite / tiny (exports) | 12 / 9 |
+| V9 Jarvis v1, avec outils | 21 |
+| **V9 Jarvis v2, avec outils** | **20** |
+| LFM2.5-230M 8 bits / 350M 4 bits / 350M 8 bits | 35 / 33 / 39 |
+| LFM3-1.7B 4 bits (base / + LoRA Jarvis) | 42 / 41 |
+
+### Autres mesures V9 Jarvis v2
+| Mesure | Résultat |
+|---|---|
+| Banc de régression 21 cas | 18/21 (v1 : 16/21 ; `anneal_a` : 21/21, ancien jeu de mots-clés) |
+| Recopie d'arithmétique, 40 questions nouvelles | 28/40 (v1 : 14/40) |
+| Date (texte cohérent avec l'outil) | correcte (v1 : fausse) |
+| Raisonnement, formulation d'entraînement | 41/63 |
+| Raisonnement, formulations reformulées | 6 à 10/63 |
+| Vitesse | ~220 tok/s (MacBook Air, mesure utilisateur) ; 260-430 tok/s (Mac mini) |
+| RAM du processus | 159 Mo mesurés sur l'Air (bundle conv, même format) ; ~190 Mo (Mac mini, `lite`) |
+
+### Conclusion
+- Fort : conversation courte, persona Jarvis stable, refus corrects (4/4 en ignorance),
+  calcul par outil, vitesse. Projet complet de bout en bout (tokenizer, pré-entraînement,
+  SFT, quantification, serveur avec outils, bancs d'évaluation).
+- Limites mesurées : aucune connaissance factuelle fiable (faits 0 à 1/9), le `<think>`
+  ne généralise pas (templates), recopie de nombres imparfaite, RAM au-dessus de 100 Mo.
+- Aller plus loin demanderait plus de tokens et de paramètres (semaines de calcul) ou un
+  modèle parent ; la voie capable est Jarvis sur LFM3 (branche `feat/jarvis-lfm3`).
