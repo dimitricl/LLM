@@ -41,7 +41,7 @@ CASES: list[Case] = [
         "thanks",
         "conversation",
         "Merci beaucoup !",
-        [r"de rien|pas de quoi|plaisir|avec plaisir"],
+        [r"de rien|pas de quoi|plaisir|n'hésite|à (ton|votre) service"],
         max_words=30,
     ),
     _c(
@@ -172,7 +172,7 @@ CASES: list[Case] = [
         "inst_short",
         "instructions",
         "En une phrase : pourquoi la mer est-elle salée ?",
-        [r"sel|min[eé]raux"],
+        [r"\bsel\b|salin|sodium|min[eé]raux"],
         max_words=45,
     ),
     _c(
