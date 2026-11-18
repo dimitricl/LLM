@@ -2,7 +2,9 @@
 Updated: 2026-11-18
 
 ## Current state
-- Branch `feat/tinyllm-v9`. Published 2026-11-18 on github.com/dimitricl/LLM (public): branches feat/tinyllm-v9, feat/jarvis-lfm3, feat/tinyllm-v8 pushed; 8 model bundles as assets of release `tinyllm-v9-models` (files > 100 MB cannot go through git; git-lfs not installed); small synthetic datasets in `datasets/`; index in `MODELS.md`. Nothing merged into main yet.
+- PROJECT CLOSED 2026-11-18. `main` contains everything (PRs #1 V9 and #2 LFM3 recipe merged) on github.com/dimitricl/LLM (public). Branches feat/* are merged/historical. GitHub Releases hold the heavy files: `tinyllm-v9-models` (8 bundles, 899 MB), `tinyllm-v9-checkpoints` (3 `best` checkpoints + tokenizer, 1.5 GB), `tinyllm-v9-corpus` (tokenized corpus, 2 parts, 2.7 GB, SHA256SUMS). Restore steps: `MODELS.md`. Index of everything: `MODELS.md`; small datasets in `datasets/`.
+- Local folder is now ~873 MB: `runs/`, `data/` (except tracked `data/eval/`) and `.venv` were deleted (published on Releases; also backed up in `~/backups/tinyllm/`). To work again: `uv sync`, then download the releases. `exports/` (8 bundles) kept locally. A zip of the folder is at `/Volumes/Lexar/Projects/LLM.zip`. The `llm-eval/` folder (LFM3 model, LoRA adapter, results) was deleted; the LFM3 track is abandoned (recipe kept in docs/JARVIS_LFM3.md); a restart would be from scratch.
+- Jarvis v2 on user's MacBook Air (manual test): ~226 tok/s, 32 MB RAM shown by the chat UI (earlier V9 bundle: 159 MB by another method); known defect: answers "Je suis TinyLLM" after the user gives a name. Unverified: restoring from the releases was never tested end to end. Known failing test `test_train_config_has_max_hours` (pre-existing, ignored).
 - V9: 86.5 M params, pretrain done (val_loss 3.1587, 1.97 B tokens). Kept as the home-made reference / portfolio model.
 - `runs/sft_v9_conv` STOPPED by decision at step 3200 (best = step 3000, val_loss 2.2228; gains had fallen to ~0.004 per 250 steps). Resumable with `--resume`.
 - Neutral bench (45 cases, `scripts/bench_neutral.py`, one run, regex scoring, result files deleted with the eval folder on 2026-11-18):
