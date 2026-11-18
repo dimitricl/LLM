@@ -18,7 +18,9 @@ Updated: 2026-11-18
   - LFM2.5-350M 8-bit via `mlx-lm lora` works (150 iters, lr 1e-4, 8 layers, ~5 min): persona learned but model degraded, bench 39 -> 10/45 (loops, identity reply leaks into unrelated answers). Likely causes [?]: 73% persona rows (near-duplicates), weak teacher replay, lr too high.
   - LFM3-1.7B 4-bit via `python -m mlx_vlm.train` works on text-only JSONL (20 iters, lr 5e-5, ~230 tok/s, peak 3.8 GB); calc/facts preserved, identity not yet learned (undertrained). Not comparable 1:1 with the LFM2.5 run.
 
+- LFM3 + Jarvis LoRA v2 (branch `feat/jarvis-lfm3`, see docs/JARVIS_LFM3.md): neutral bench 41/45 (base 42), persona learned, 1006/1178 MB MLX active/peak.
+
 ## Next steps
-- Rebuild the mix: dedupe persona (~150 rows), <=10% persona, self-distilled replay (base model's own answers on general prompts), lower lr; retrain LFM3 for ~300 iters; re-run bench + multi-turn persona check.
+- (done) Rebuild the mix: dedupe persona (~150 rows), <=10% persona, self-distilled replay (base model's own answers on general prompts), lower lr; retrain LFM3 for ~300 iters; re-run bench + multi-turn persona check.
 - Re-run neutral bench after fine-tuning; check Jarvis persona over multi-turn; check RAM < 2 GB at long context.
 - V9 track (portfolio): annealing on persona+tools data from `anneal_a`, evaluate with bench.
