@@ -5,11 +5,23 @@ Small decoder-only language model (FR/EN) trained from scratch with
 pre-training, SFT, evaluation, quantization and a local chat server.
 
 Home-made model: **V9** (Jarvis v2, tools included; final results in `docs/V9_RESULTS.md` section 8).
-Fine-tuned track on LFM3: branch `feat/jarvis-lfm3`.
+Fine-tuned track on LFM3: recipe in `docs/JARVIS_LFM3.md`.
 
 Current model: **V9**, 86.5 M parameters (16 layers, d_model 640, GQA 10:2,
 context 512), pre-trained on ~1.97 B tokens. Details and numbers:
 [`docs/V9_RESULTS.md`](docs/V9_RESULTS.md).
+
+### Measured on a MacBook Air (Jarvis v2 bundle, `exports/tinyllm-v9-jarvis2`)
+
+| Metric | Value |
+|---|---|
+| Parameters / context | 86.5 M / 512 tokens |
+| Generation speed | ~226 tok/s (10 tokens in 0.044 s; earlier runs ~220 tok/s) |
+| RAM | 32 MB as displayed by the chat UI (the earlier V9 bundle measured 159 MB by the user, so the two figures may not use the same method) |
+| Persona | "Je suis Jarvis, ton assistant local..." answered correctly |
+| Known defect | After the user gives their name, the model can answer "Je suis TinyLLM" (old identity resurfacing) |
+
+Figures reported by the author from manual tests, not from the benchmark scripts.
 
 ## Layout
 
